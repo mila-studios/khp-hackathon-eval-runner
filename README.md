@@ -4,28 +4,27 @@ This repo contains a Python master runner (`master_eval.py`) that loops over tea
 
 - `git clone` (per team)
 - read `hackathon.json` + validate required scripts (per team repo)
-- `scripts/configure.sh` (per team repo)
-- `scripts/predict.sh <input.csv> <predictions.csv>` (per team repo)
+- `project/scripts/configure.sh` (per team repo)
+- `project/scripts/predict.sh <input.csv> <predictions.csv>` (per team repo)
 - validate that predictions were produced (per team)
-- an evaluator command (default: `python3 eval/evaluate.py --pred ... --out ...`)
+- an evaluator script (default: `bash scripts/evaluate.sh <predictions.csv> <metrics.csv>`)
 
 It writes per-team logs/artifacts under `outputs/<run_id>/` and produces a run-level `report.csv`.
 
 ## Repo layout
 
 - `master_eval.py`: main runner (clone → validate_repo → configure → predict → validate_predictions → evaluate)
-- `eval/evaluate.py`: minimal example evaluator (replace/override for your hackathon)
-- `inputs/input.csv`: sample input CSV you can use for local testing
+- `scripts/evaluate.sh`: default evaluator (calls `python -m src.guardrails.get_guardrail_metrics`)
+- `datasets/sample_guardrail_data.csv`: sample input CSV you can use for local testing
 - `teams.example.csv`: example team list format
-- `team_repo_template/`: a minimal submission template teams can copy
 
 ## Team submission contract (required)
 
 Each team repo must contain:
 
 - `hackathon.json` (required): declares resource needs
-- `scripts/configure.sh` (required)
-- `scripts/predict.sh` (required)
+- `project/scripts/configure.sh` (required)
+- `project/scripts/predict.sh` (required)
 
 ### `hackathon.json` schema
 
@@ -66,7 +65,7 @@ python -m pip install -r requirements.txt
 ```bash
 python3 master_eval.py \
   --teams-csv teams.csv \
-  --input-csv inputs/input.csv
+  --input-csv datasets/sample_guardrail_data.csv
 ```
 
 If you don’t see colored logs, force-enable colors:
@@ -79,7 +78,7 @@ FORCE_COLOR=1 python3 master_eval.py --help
 
 - `--run-id <id>`: run identifier (default: `run_YYYYmmdd_HHMMSS`)
 - `--teams-csv <path>`: CSV with headers `team_id,git_url` (default: `teams.csv`, env `TEAM_LIST`)
-- `--input-csv <path>`: input CSV passed to `predict.sh` (default: `inputs/input.csv`, env `INPUT_CSV`)
+- `--input-csv <path>`: input CSV passed to `predict.sh` (default: `datasets/input.csv`, env `INPUT_CSV`)
 - `--work-dir <path>`: where repos are cloned (default: `work/<run_id>/`, env `WORK_DIR`)
 - `--out-dir <path>`: output root (default: `outputs/<run_id>/`, env `OUT_DIR`)
 - `--fail-fast`: stop scheduling new teams after the first failure
@@ -91,8 +90,8 @@ FORCE_COLOR=1 python3 master_eval.py --help
   - The runner clones each team repo under `work/<run_id>/<team_id>/repo/`
 
 - **Stage scripts**
-  - `scripts/configure.sh` (required)
-  - `scripts/predict.sh` (required)
+  - `project/scripts/configure.sh` (required)
+  - `project/scripts/predict.sh` (required)
 
 - **Timeouts (seconds)**
   - `--clone-timeout` (env `CLONE_TIMEOUT`, default 600)
@@ -115,15 +114,15 @@ FORCE_COLOR=1 python3 master_eval.py --help
 
 The runner executes:
 
-- `python3 <eval-script> --pred <predictions.csv> --out <metrics.csv>`
+- `bash <eval-script> <predictions.csv> <metrics.csv>`
 
 Example (custom evaluator entrypoint):
 
 ```bash
 python3 master_eval.py \
   --teams-csv teams.csv \
-  --input-csv inputs/input.csv \
-  --eval-script eval/evaluate.py
+  --input-csv datasets/sample_guardrail_data.csv \
+  --eval-script scripts/evaluate.sh
 ```
 
 ## Outputs
@@ -132,6 +131,7 @@ Run-level files:
 
 - `outputs/<run_id>/run_manifest.txt`: resolved paths + options for the run
 - `outputs/<run_id>/report.csv`: one row per team
+- `outputs/<run_id>/report.jsonl`: one JSON object per team
 - `outputs/<run_id>/summary.txt`: totals (ok/failed)
 
 `report.csv` schema:

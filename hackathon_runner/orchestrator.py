@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import shutil
 import subprocess
 import time
@@ -40,8 +41,8 @@ class TeamReportRow:
 
 
 def run(args: argparse.Namespace) -> int:
-    configure_path = "scripts/configure.sh"
-    predict_path = "scripts/predict.sh"
+    configure_path = "project/scripts/configure.sh"
+    predict_path = "project/scripts/predict.sh"
 
     root_dir = Path.cwd()
     set_display_root(root_dir)
@@ -308,7 +309,7 @@ def run(args: argparse.Namespace) -> int:
                 if not run_cmd(
                     stage="evaluate",
                     team_out=team_out,
-                    cmd=["python3", str(eval_script), "--pred", str(pred_path), "--out", str(metrics_path)],
+                    cmd=["bash", str(eval_script), str(pred_path), str(metrics_path)],
                     cwd=root_dir,
                     timeout_s=args.eval_timeout,
                     extra_env=stage_env,
@@ -362,8 +363,9 @@ def run(args: argparse.Namespace) -> int:
         if fail > 0 and not args.continue_on_failure:
             break
 
-    # Write report.csv
+    # Write report.csv and report.jsonl
     report_path = out_dir / "report.csv"
+    report_jsonl_path = out_dir / "report.jsonl"
     with report_path.open("w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["team_id", "final_status", "failed_stage", "log_path", "pred_path", "metrics_path", "error", "elapsed_s"])
@@ -373,6 +375,33 @@ def run(args: argparse.Namespace) -> int:
                 w.writerow([t.team_id, "CANCELLED", "", "", "", "", "", ""])
                 continue
             w.writerow([r.team_id, r.final_status, r.failed_stage, r.log_path, r.pred_path, r.metrics_path, r.error, f"{r.elapsed_s:.3f}"])
+
+    with report_jsonl_path.open("w", encoding="utf-8") as f:
+        for t in teams:
+            r = results.get(t.team_id)
+            if r is None:
+                obj = {
+                    "team_id": t.team_id,
+                    "final_status": "CANCELLED",
+                    "failed_stage": "",
+                    "log_path": "",
+                    "pred_path": "",
+                    "metrics_path": "",
+                    "error": "",
+                    "elapsed_s": None,
+                }
+            else:
+                obj = {
+                    "team_id": r.team_id,
+                    "final_status": r.final_status,
+                    "failed_stage": r.failed_stage,
+                    "log_path": r.log_path,
+                    "pred_path": r.pred_path,
+                    "metrics_path": r.metrics_path,
+                    "error": r.error,
+                    "elapsed_s": round(r.elapsed_s, 3),
+                }
+            f.write(json.dumps(obj, ensure_ascii=False) + "\n")
 
     append_text(out_dir / "run_manifest.txt", f"ended_at={ts()}\ntotal={total}\nok={ok}\nfailed={fail}\n")
     write_text(out_dir / "summary.txt", f"ended_at={ts()}\ntotal={total}\nok={ok}\nfailed={fail}\n")

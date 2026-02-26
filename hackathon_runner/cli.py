@@ -12,7 +12,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         description="Hackathon master evaluation runner (clone -> validate_repo -> configure -> predict -> validate_predictions -> evaluate)."
     )
     p.add_argument("--teams-csv", type=Path, default=Path(os.environ.get("TEAM_LIST", "teams.csv")))
-    p.add_argument("--input-csv", type=Path, default=Path(os.environ.get("INPUT_CSV", "inputs/input.csv")))
+    p.add_argument("--input-csv", type=Path, default=Path(os.environ.get("INPUT_CSV", "datasets/input.csv")))
 
     def _env_path(name: str) -> Optional[Path]:
         v = os.environ.get(name)
@@ -43,7 +43,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         help="Stop scheduling new teams after the first failure.",
     )
 
-    p.add_argument("--eval-script", type=Path, default=Path(os.environ.get("EVAL_SCRIPT", "eval/evaluate.py")))
+    p.add_argument("--eval-script", type=Path, default=Path(os.environ.get("EVAL_SCRIPT", "scripts/evaluate.sh")))
 
     p.add_argument("--pred-filename", default="predictions/predictions.csv")
     p.add_argument("--metrics-filename", default="metrics/metrics.csv")
