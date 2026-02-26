@@ -7,7 +7,7 @@ cd "$REPO_ROOT"
 VENV_DIR="${VENV_DIR:-.venv}"
 
 echo "== configure =="
-echo "Mode: ${HACKATHON_MODE:-unknown} (gpu=${HACKATHON_NEEDS_GPU:-0} llm_judge=${HACKATHON_NEEDS_LLM_JUDGE:-0})"
+echo "Mode: ${HACKATHON_MODE:-unknown} (gpu=${HACKATHON_NEEDS_GPU:-0})"
 
 # Goal of this step:
 # - Install dependencies

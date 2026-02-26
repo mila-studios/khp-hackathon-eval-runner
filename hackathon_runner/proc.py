@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from .fs_utils import mark_status
+from .fs_utils import update_status
 from .logging_utils import log, log_context
 from .util import fmt_elapsed, short_arg, ts
 
@@ -94,6 +94,7 @@ def run_cmd(
         f.write(f"[{ts()}] cmd={cmd_str}\n".encode("utf-8"))
 
     try:
+        update_status(team_out, overall="RUNNING", last_stage=stage, last_stage_status="STARTED")
         t0 = time.monotonic()
         with logfile.open("ab") as f:
             proc = subprocess.Popen(
@@ -110,13 +111,13 @@ def run_cmd(
                 with logfile.open("ab") as ff:
                     ff.write(f"\n[{ts()}] ERROR: Timeout after {timeout_s}s\n".encode("utf-8"))
                 _terminate_process_group(proc, logfile=logfile)
-                mark_status(team_out, stage, "FAILED")
+                update_status(team_out, overall="FAILED", last_stage=stage, last_stage_status="FAILED", failed_stage=stage)
                 with log_context(stage=stage):
                     log(f"FAILED (timeout after {timeout_s}s). See {logfile}", level="ERROR")
                 return False
 
         if rc == 0:
-            mark_status(team_out, stage, "DONE")
+            update_status(team_out, last_stage=stage, last_stage_status="DONE")
             elapsed = time.monotonic() - t0
             with log_context(stage=stage):
                 log(f"DONE (elapsed={fmt_elapsed(elapsed)})", level="SUCCESS")
@@ -124,14 +125,14 @@ def run_cmd(
 
         with logfile.open("ab") as f:
             f.write(f"\n[{ts()}] ERROR: Exit code {rc}\n".encode("utf-8"))
-        mark_status(team_out, stage, "FAILED")
+        update_status(team_out, overall="FAILED", last_stage=stage, last_stage_status="FAILED", failed_stage=stage)
         with log_context(stage=stage):
             log(f"FAILED (exit={rc}). See {logfile}", level="ERROR")
         return False
     except Exception as e:
         with logfile.open("ab") as f:
             f.write(f"\n[{ts()}] ERROR: {type(e).__name__}: {e}\n".encode("utf-8"))
-        mark_status(team_out, stage, "FAILED")
+        update_status(team_out, overall="FAILED", last_stage=stage, last_stage_status="FAILED", failed_stage=stage)
         with log_context(stage=stage):
             log(f"FAILED ({type(e).__name__}: {e}). See {logfile}", level="ERROR")
         return False

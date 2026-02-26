@@ -1,5 +1,4 @@
 {
-  "needs_gpu": false,
-  "needs_llm_judge": false
+  "needs_gpu": false
 }
 

@@ -23,7 +23,7 @@ fi
 echo "== predict =="
 echo "Input : $IN_CSV"
 echo "Output: $OUT_CSV"
-echo "Mode  : ${HACKATHON_MODE:-unknown} (gpu=${HACKATHON_NEEDS_GPU:-0} llm_judge=${HACKATHON_NEEDS_LLM_JUDGE:-0})"
+echo "Mode  : ${HACKATHON_MODE:-unknown} (gpu=${HACKATHON_NEEDS_GPU:-0})"
 
 # Most teams only need to edit predict.py.
 if [[ -f predict.py ]]; then

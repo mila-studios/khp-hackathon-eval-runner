@@ -3,15 +3,17 @@
 This repo contains a Python master runner (`master_eval.py`) that loops over team submissions and executes:
 
 - `git clone` (per team)
+- read `hackathon.json` + validate required scripts (per team repo)
 - `scripts/configure.sh` (per team repo)
 - `scripts/predict.sh <input.csv> <predictions.csv>` (per team repo)
+- validate that predictions were produced (per team)
 - an evaluator command (default: `python3 eval/evaluate.py --pred ... --out ...`)
 
 It writes per-team logs/artifacts under `outputs/<run_id>/` and produces a run-level `report.csv`.
 
 ## Repo layout
 
-- `master_eval.py`: main runner (clone → configure → predict → validate_predictions → evaluate)
+- `master_eval.py`: main runner (clone → validate_repo → configure → predict → validate_predictions → evaluate)
 - `eval/evaluate.py`: minimal example evaluator (replace/override for your hackathon)
 - `inputs/input.csv`: sample input CSV you can use for local testing
 - `teams.example.csv`: example team list format
@@ -22,23 +24,16 @@ It writes per-team logs/artifacts under `outputs/<run_id>/` and produces a run-l
 Each team repo must contain:
 
 - `hackathon.json` (required): declares resource needs
-- `scripts/configure.sh` (required, executable)
-- `scripts/predict.sh` (required, executable)
-
-Make scripts executable:
-
-```bash
-chmod +x scripts/configure.sh scripts/predict.sh
-```
+- `scripts/configure.sh` (required)
+- `scripts/predict.sh` (required)
 
 ### `hackathon.json` schema
 
-`hackathon.json` must be in the team repo root by default (or you can configure alternate locations via `--repo-config-paths`):
+`hackathon.json` must be in the team repo root:
 
 ```json
 {
-  "needs_gpu": false,
-  "needs_llm_judge": false
+  "needs_gpu": false
 }
 ```
 
@@ -47,8 +42,7 @@ chmod +x scripts/configure.sh scripts/predict.sh
 The runner passes these environment variables to `configure.sh` and `predict.sh`:
 
 - `HACKATHON_NEEDS_GPU`: `0` or `1`
-- `HACKATHON_NEEDS_LLM_JUDGE`: `0` or `1`
-- `HACKATHON_MODE`: `cpu` | `gpu` | `llm_judge` | `gpu_llm_judge`
+- `HACKATHON_MODE`: `cpu` | `gpu`
 
 ## Quickstart (runner)
 
@@ -85,37 +79,20 @@ FORCE_COLOR=1 python3 master_eval.py --help
 
 - `--run-id <id>`: run identifier (default: `run_YYYYmmdd_HHMMSS`)
 - `--teams-csv <path>`: CSV with headers `team_id,git_url` (default: `teams.csv`, env `TEAM_LIST`)
-- `--input-csv <path>`: input CSV passed to `predict.sh` (default: `data/input.csv`, env `INPUT_CSV`)
+- `--input-csv <path>`: input CSV passed to `predict.sh` (default: `inputs/input.csv`, env `INPUT_CSV`)
 - `--work-dir <path>`: where repos are cloned (default: `work/<run_id>/`, env `WORK_DIR`)
 - `--out-dir <path>`: output root (default: `outputs/<run_id>/`, env `OUT_DIR`)
-- `--resume`: skip stages already marked `DONE` under `outputs/<run_id>/<team_id>/status/` (env `RESUME=1`)
-- `--start-at <stage>` / `--stop-after <stage>`: stage controls (env `START_AT`, `STOP_AFTER`)
 - `--fail-fast`: stop scheduling new teams after the first failure
 - `--only-teams team_001,team_005`: run a subset
-- `--max-workers N`: max teams in parallel (default 4, env `MAX_WORKERS`)
-- `--max-gpu N`: max concurrent GPU teams (`needs_gpu=true`) (default 1, env `MAX_GPU`)
-- `--max-llm-judge N`: max concurrent LLM judge teams (`needs_llm_judge=true`) (default 4, env `MAX_LLM_JUDGE`)
-
-Stage names accepted by `--start-at/--stop-after`:
-
-- `clone`
-- `repo_config`
-- `configure`
-- `predict`
-- `validate_predictions`
-- `evaluate`
 
 ## Advanced options / knobs
 
-- **Repo config discovery**
-  - `--repo-config-paths "hackathon.json,config/hackathon.json"`: comma-separated relative paths to search within the team repo (env `REPO_CONFIG_PATHS`)
-
 - **Per-team repo layout**
-  - `--repo-subdir repo`: where the team repo is cloned under `work/<run_id>/<team_id>/` (default `repo`)
+  - The runner clones each team repo under `work/<run_id>/<team_id>/repo/`
 
 - **Stage scripts**
-  - `--configure-path scripts/configure.sh`
-  - `--predict-path scripts/predict.sh`
+  - `scripts/configure.sh` (required)
+  - `scripts/predict.sh` (required)
 
 - **Timeouts (seconds)**
   - `--clone-timeout` (env `CLONE_TIMEOUT`, default 600)
@@ -128,26 +105,17 @@ Stage names accepted by `--start-at/--stop-after`:
   - To stop on first failure, pass `--fail-fast` (or set `CONTINUE_ON_FAILURE=0` in the environment).
 
 - **Clone/workdir controls**
-  - `--skip-clone`: assume `work/<run_id>/<team_id>/<repo-subdir>/` already exists; do not run `git clone`
-  - `--keep-workdir`: don’t delete existing per-team work dirs on a fresh run
+  - The runner clones each team repo fresh for each run.
 
 - **Artifact filenames**
   - `--pred-filename predictions/predictions.csv`
   - `--metrics-filename metrics/metrics.csv`
 
-## Evaluator (`--eval-cmd`)
+## Evaluator (`--eval-script`)
 
-By default the runner executes:
+The runner executes:
 
-- `--eval-script eval/evaluate.py`
-- `--eval-cmd "python3 {eval_script} --pred {pred} --out {out}"`
-
-You can override `--eval-cmd` with a template string. Available placeholders:
-
-- `{eval_script}`: path from `--eval-script` (empty string if not needed)
-- `{pred}`: team predictions CSV path under `outputs/<run_id>/<team_id>/...`
-- `{out}` / `{metrics}`: metrics CSV path under `outputs/<run_id>/<team_id>/...`
-- `{input}`: the input CSV path (same for all teams)
+- `python3 <eval-script> --pred <predictions.csv> --out <metrics.csv>`
 
 Example (custom evaluator entrypoint):
 
@@ -155,8 +123,7 @@ Example (custom evaluator entrypoint):
 python3 master_eval.py \
   --teams-csv teams.csv \
   --input-csv inputs/input.csv \
-  --eval-script eval/evaluate.py \
-  --eval-cmd "python3 {eval_script} --pred {pred} --out {out} --expected-rows 501"
+  --eval-script eval/evaluate.py
 ```
 
 ## Outputs
@@ -170,11 +137,12 @@ Run-level files:
 `report.csv` schema:
 
 - `team_id`
-- `final_status`: `OK`, `FAILED`, `CANCELLED`, or `OK_STOP_AFTER_<stage>`
+- `final_status`: `OK`, `FAILED`, or `CANCELLED`
 - `failed_stage`: stage name when `final_status=FAILED`
 - `log_path`: failing stage log (when failed)
 - `pred_path`: predictions artifact path (when available)
 - `metrics_path`: metrics artifact path (when available)
+- `error`: short error message (when available)
 - `elapsed_s`
 
 Per-team folder:
@@ -182,7 +150,7 @@ Per-team folder:
 ```
 outputs/<run_id>/<team_id>/
   logs/<stage>.log
-  status/<stage>.DONE|FAILED
+  status.txt
   predictions/predictions.csv
   metrics/metrics.csv
   team_manifest.txt
@@ -193,52 +161,7 @@ Default artifact filenames (overridable):
 - predictions: `--pred-filename` (default `predictions/predictions.csv`)
 - metrics: `--metrics-filename` (default `metrics/metrics.csv`)
 
-## Resume / rerun workflows
+## Rerun workflow
 
-If a team fails at a stage, inspect `outputs/<run_id>/<team_id>/logs/<stage>.log`, fix the issue, then rerun.
-
-Resume and skip already-DONE stages:
-
-```bash
-python3 master_eval.py \
-  --run-id <run_id> \
-  --teams-csv teams.csv \
-  --input-csv inputs/input.csv \
-  --resume
-```
-
-Rerun `predict` (and downstream stages) **without rerunning `configure`**:
-
-- Reuse the same `--run-id` so the already-configured checkout under `work/<run_id>/...` is reused.
-- Start at `predict` so earlier stages aren’t scheduled.
-
-```bash
-python3 master_eval.py \
-  --run-id <run_id> \
-  --teams-csv teams.csv \
-  --input-csv inputs/input.csv \
-  --start-at predict
-```
-
-Rerun starting from a specific stage (example: rerun prediction + downstream):
-
-```bash
-python3 master_eval.py \
-  --run-id <run_id> \
-  --teams-csv teams.csv \
-  --input-csv inputs/input.csv \
-  --start-at predict
-```
-
-## Readiness audit (clone + repo config only)
-
-To quickly find submissions that are misconfigured (missing `hackathon.json`, missing scripts, scripts not executable), run:
-
-```bash
-python3 master_eval.py \
-  --run-id <run_id> \
-  --teams-csv teams.csv \
-  --input-csv inputs/input.csv \
-  --stop-after repo_config
-```
+If a team fails, inspect `outputs/<run_id>/<team_id>/logs/<stage>.log`, fix the issue, then rerun the same command (optionally narrowing scope with `--only-teams`).
 

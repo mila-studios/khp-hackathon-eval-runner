@@ -5,19 +5,13 @@ Copy this folder into a new git repo for a team submission.
 ### Required files
 
 - `hackathon.json` (required): declares resource needs
-- `scripts/configure.sh` (required, executable)
-- `scripts/predict.sh` (required, executable)
+- `scripts/configure.sh` (required)
+- `scripts/predict.sh` (required)
 
 ### “Edit these files” (recommended)
 
 - `requirements.txt` (optional): Python dependencies for your model
 - `predict.py` (recommended): where you implement the actual prediction logic
-
-### Make scripts executable
-
-```bash
-chmod +x scripts/configure.sh scripts/predict.sh
-```
 
 ### Contract
 
@@ -26,6 +20,5 @@ chmod +x scripts/configure.sh scripts/predict.sh
 
 The runner will pass:
 - `HACKATHON_NEEDS_GPU=0|1`
-- `HACKATHON_NEEDS_LLM_JUDGE=0|1`
-- `HACKATHON_MODE=cpu|gpu|llm_judge|gpu_llm_judge`
+- `HACKATHON_MODE=cpu|gpu`
 
