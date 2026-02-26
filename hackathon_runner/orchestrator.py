@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import shutil
 import subprocess
 import time
@@ -40,12 +41,47 @@ class TeamReportRow:
     elapsed_s: float
 
 
+def _load_dotenv_file(path: Path) -> Dict[str, str]:
+    """
+    Minimal .env loader (KEY=VALUE lines).
+
+    - Ignores blank lines and comments (#...)
+    - Supports optional `export KEY=VALUE`
+    - Strips single/double quotes around VALUE
+    """
+    if not path.exists():
+        return {}
+    out: Dict[str, str] = {}
+    for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].lstrip()
+        if "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        k = k.strip()
+        v = v.strip()
+        if not k:
+            continue
+        if len(v) >= 2 and ((v[0] == v[-1] == '"') or (v[0] == v[-1] == "'")):
+            v = v[1:-1]
+        out[k] = v
+    return out
+
+
 def run(args: argparse.Namespace) -> int:
     configure_path = "project/scripts/configure.sh"
     predict_path = "project/scripts/predict.sh"
 
     root_dir = Path.cwd()
     set_display_root(root_dir)
+
+    # Load .env (if present) and pass any missing vars into subprocess env.
+    # We do NOT overwrite explicitly-set process env vars.
+    dotenv_vars = _load_dotenv_file(root_dir / ".env")
+    dotenv_extra_env = {k: v for (k, v) in dotenv_vars.items() if k not in os.environ}
 
     def git_head_sha(repo: Path) -> Optional[str]:
         try:
@@ -241,9 +277,25 @@ def run(args: argparse.Namespace) -> int:
                     log(f"Config OK needs_gpu={int(needs_gpu)} mode={effective_mode}", level="SUCCESS")
 
                 stage_env = {
+                    **dotenv_extra_env,
                     "HACKATHON_NEEDS_GPU": "1" if needs_gpu else "0",
                     "HACKATHON_MODE": effective_mode,
                 }
+
+                # Many team repos install deps into repo-local virtualenvs (commonly ".venv")
+                # during configure, but their scripts may still call "python". Prepending the
+                # venv bin dir to PATH makes "python" resolve correctly.
+                base_path = os.environ.get("PATH", "")
+                venv_bin_candidates = [
+                    repo_dir / ".venv" / "bin",
+                    repo_dir / "venv" / "bin",
+                    repo_dir / "project" / ".venv" / "bin",
+                ]
+                team_exec_env = dict(stage_env)
+                # Note: we include these paths even if they don't exist yet; they commonly get
+                # created during `configure`, and we want `predict` to pick them up reliably.
+                venv_bins = [str(p) for p in venv_bin_candidates]
+                team_exec_env["PATH"] = os.pathsep.join(venv_bins + ([base_path] if base_path else []))
 
                 # Artifact paths
                 pred_path = team_out / args.pred_filename
@@ -260,7 +312,7 @@ def run(args: argparse.Namespace) -> int:
                     cmd=["bash", configure_path],
                     cwd=repo_dir,
                     timeout_s=args.configure_timeout,
-                    extra_env=stage_env,
+                    extra_env=team_exec_env,
                 ):
                     cfg_log = team_out / "logs" / "configure.log"
                     set_team_result(ok_flag=False, stage="configure", log_path=cfg_log)
@@ -275,7 +327,7 @@ def run(args: argparse.Namespace) -> int:
                     cmd=["bash", predict_path, str(input_csv), str(pred_path)],
                     cwd=repo_dir,
                     timeout_s=args.predict_timeout,
-                    extra_env=stage_env,
+                    extra_env=team_exec_env,
                 ):
                     p_log = team_out / "logs" / "predict.log"
                     set_team_result(ok_flag=False, stage="predict", log_path=p_log)

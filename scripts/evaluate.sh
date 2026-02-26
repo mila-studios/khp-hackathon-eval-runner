@@ -21,6 +21,14 @@ INVOKED_DIR="$(pwd)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Load repo .env when running standalone (if present).
+if [[ -f "$PROJECT_ROOT/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$PROJECT_ROOT/.env"
+  set +a
+fi
+
 # Resolve paths relative to invocation dir so "results/predictions.csv" from repo root works after we cd to project/
 [[ "$PREDICTIONS_CSV" != /* ]] && PREDICTIONS_CSV="$INVOKED_DIR/$PREDICTIONS_CSV"
 [[ "$EVAL_METRICS_CSV" != /* ]] && EVAL_METRICS_CSV="$INVOKED_DIR/$EVAL_METRICS_CSV"

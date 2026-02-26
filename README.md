@@ -17,6 +17,7 @@ It writes per-team logs/artifacts under `outputs/<run_id>/` and produces a run-l
 - `scripts/evaluate.sh`: default evaluator (calls `python -m src.guardrails.get_guardrail_metrics`)
 - `datasets/sample_guardrail_data.csv`: sample input CSV you can use for local testing
 - `teams.example.csv`: example team list format
+- `.env.example`: runner config template (copy to `.env`)
 
 ## Team submission contract (required)
 
@@ -38,10 +39,12 @@ Each team repo must contain:
 
 ### Environment variables passed to team scripts
 
-The runner passes these environment variables to `configure.sh` and `predict.sh`:
+The runner passes these environment variables to team scripts (`configure.sh`, `predict.sh`, and the evaluator):
 
 - `HACKATHON_NEEDS_GPU`: `0` or `1`
 - `HACKATHON_MODE`: `cpu` | `gpu`
+
+It also forwards environment variables from your shell, and (if present) loads `.env` from the runner repo root and forwards those values too (without overriding already-exported variables). This is how secrets like `OPENAI_API_KEY` are made available to team code.
 
 ## Quickstart (runner)
 
@@ -51,7 +54,13 @@ The runner passes these environment variables to `configure.sh` and `predict.sh`
 cp teams.example.csv teams.csv
 ```
 
-2) Create a virtual environment and install dependencies:
+2) (Optional) Create a `.env` file for configuration/secrets:
+
+```bash
+cp .env.example .env
+```
+
+3) Create a virtual environment and install dependencies:
 
 ```bash
 python3 -m venv .venv
@@ -60,7 +69,7 @@ python -m pip install -U pip
 python -m pip install -r requirements.txt
 ```
 
-3) Run:
+4) Run:
 
 ```bash
 python3 master_eval.py \
@@ -92,6 +101,7 @@ FORCE_COLOR=1 python3 master_eval.py --help
 - **Stage scripts**
   - `project/scripts/configure.sh` (required)
   - `project/scripts/predict.sh` (required)
+  - Note: for `configure`/`predict`, the runner will prepend common repo-local venv locations (like `repo/.venv/bin`) to `PATH` if they exist, so a team script calling `python` typically uses the venv created during `configure`.
 
 - **Timeouts (seconds)**
   - `--clone-timeout` (env `CLONE_TIMEOUT`, default 600)
