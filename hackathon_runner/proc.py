@@ -75,7 +75,8 @@ def run_cmd(
     logs_dir.mkdir(parents=True, exist_ok=True)
     logfile = logs_dir / f"{stage}.log"
 
-    env = os.environ.copy()
+    _SAFE_INHERIT = {"HOME", "USER", "LOGNAME", "TMPDIR", "TMP", "TEMP", "LANG", "LC_ALL", "LC_CTYPE", "SHELL", "PATH"}
+    env = {k: v for k, v in os.environ.items() if k in _SAFE_INHERIT}
     if extra_env:
         env.update(extra_env)
 

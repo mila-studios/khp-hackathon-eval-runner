@@ -81,7 +81,10 @@ def run(args: argparse.Namespace) -> int:
     # Load .env (if present) and pass any missing vars into subprocess env.
     # We do NOT overwrite explicitly-set process env vars.
     dotenv_vars = _load_dotenv_file(root_dir / ".env")
-    dotenv_extra_env = {k: v for (k, v) in dotenv_vars.items() if k not in os.environ}
+    dotenv_extra_env = {
+        k: v for (k, v) in dotenv_vars.items()
+        if k not in os.environ and k.endswith("_API_KEY")
+    }
 
     def git_head_sha(repo: Path) -> Optional[str]:
         try:
