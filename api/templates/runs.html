@@ -25,15 +25,7 @@
         <tr>
             <td class="mono">{{ r.run_id }}</td>
             <td>{{ r.job_count }}</td>
-            <td>
-                {% if r.any_running %}
-                <span class="status-badge status-RUNNING">RUNNING</span>
-                {% elif r.any_failed %}
-                <span class="status-badge status-FAILED">MIXED</span>
-                {% else %}
-                <span class="status-badge status-COMPLETED">COMPLETED</span>
-                {% endif %}
-            </td>
+            <td><span class="status-badge status-{{ r.status }}">{{ r.status }}</span></td>
             <td>{{ r.triggered_by }}</td>
             <td>{{ r.first_created[:19] }}</td>
             <td>{{ r.last_created[:19] }}</td>

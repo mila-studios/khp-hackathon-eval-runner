@@ -359,6 +359,33 @@ async def jobs_trigger(
     return RedirectResponse(url=f"/admin/dashboard/jobs/{job.id}", status_code=303)
 
 
+@router.post("/jobs/{job_id}/cancel")
+def jobs_cancel(job_id: str, db: Session = Depends(get_db), eval_session: Optional[str] = Cookie(None)):
+    if not _check_session(eval_session):
+        return RedirectResponse(url="/admin/dashboard/login", status_code=303)
+
+    job = db.query(Job).filter_by(id=job_id).first()
+    if not job:
+        return _flash_redirect("/admin/dashboard/jobs", "Job not found", "error")
+
+    if job.status not in ("PENDING", "RUNNING"):
+        return _flash_redirect(f"/admin/dashboard/jobs/{job_id}",
+                               f"Cannot cancel job in {job.status} state", "error")
+
+    signalled = _dispatcher.cancel(str(job.id))
+
+    if not signalled and job.status == "PENDING":
+        job.status = "CANCELLED"
+        job.completed_at = datetime.now().isoformat()
+        for jt in job.job_teams:
+            if jt.status in (None, "PENDING", "QUEUED"):
+                jt.status = "CANCELLED"
+        db.commit()
+
+    return _flash_redirect(f"/admin/dashboard/jobs/{job_id}",
+                           "Cancel signal sent — running stage will finish, then job stops")
+
+
 # ── Job Detail ───────────────────────────────────────────────────
 
 def _build_job_teams_ctx(job, db: Session):
@@ -435,8 +462,11 @@ def runs_page(request: Request, db: Session = Depends(get_db), eval_session: Opt
             func.count(Job.id).label("job_count"),
             func.min(Job.created_at).label("first_created"),
             func.max(Job.created_at).label("last_created"),
-            func.max(case((Job.status == "RUNNING", 1), else_=0)).label("any_running"),
-            func.max(case((Job.status == "FAILED", 1), else_=0)).label("any_failed"),
+            func.sum(case((Job.status == "PENDING", 1), else_=0)).label("n_pending"),
+            func.sum(case((Job.status == "RUNNING", 1), else_=0)).label("n_running"),
+            func.sum(case((Job.status == "COMPLETED", 1), else_=0)).label("n_completed"),
+            func.sum(case((Job.status == "FAILED", 1), else_=0)).label("n_failed"),
+            func.sum(case((Job.status == "CANCELLED", 1), else_=0)).label("n_cancelled"),
             func.max(Job.triggered_by).label("triggered_by"),
         )
         .group_by(Job.run_id)
@@ -444,18 +474,27 @@ def runs_page(request: Request, db: Session = Depends(get_db), eval_session: Opt
         .all()
     )
 
-    runs = [
-        {
+    runs = []
+    for r in rows:
+        n = r.job_count
+        if r.n_running or r.n_pending:
+            status = "RUNNING"
+        elif r.n_completed == n:
+            status = "COMPLETED"
+        elif r.n_failed == n:
+            status = "FAILED"
+        elif r.n_cancelled == n:
+            status = "CANCELLED"
+        else:
+            status = "MIXED"
+        runs.append({
             "run_id": r.run_id,
             "job_count": r.job_count,
             "first_created": r.first_created,
             "last_created": r.last_created,
-            "any_running": r.any_running,
-            "any_failed": r.any_failed,
+            "status": status,
             "triggered_by": r.triggered_by,
-        }
-        for r in rows
-    ]
+        })
 
     return templates.TemplateResponse("runs.html", _template_ctx(request, runs=runs))
 

@@ -83,6 +83,7 @@ def _build_team_evals(team_id: str, db: Session):
                 stage_statuses[s] = "PENDING"
 
         metrics = db.query(TeamRunMetric).filter_by(job_team_id=jt.id).first()
+        ds = db.query(Dataset).filter_by(id=jt.job.dataset_id).first()
         evals.append({
             "job_id": str(jt.job.id),
             "team_id": jt.team_id,
@@ -94,6 +95,7 @@ def _build_team_evals(team_id: str, db: Session):
             "recall": metrics.recall if metrics else None,
             "latency_ms_mean": metrics.latency_ms_mean if metrics else None,
             "latency_ms_total": metrics.latency_ms_total if metrics else None,
+            "dataset_name": ds.name if ds else "—",
             "created_at": jt.job.created_at,
         })
     return evals

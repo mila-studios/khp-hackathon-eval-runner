@@ -295,6 +295,27 @@ def get_job(job_id: str, db: Session = Depends(get_db)):
     )
 
 
+@router.post("/jobs/{job_id}/cancel")
+def cancel_job(job_id: str, db: Session = Depends(get_db)):
+    job = db.query(Job).filter_by(id=job_id).first()
+    if not job:
+        raise HTTPException(404, "Job not found")
+    if job.status not in ("PENDING", "RUNNING"):
+        raise HTTPException(409, f"Cannot cancel job in {job.status} state")
+
+    from hackathon_runner.dispatcher import ThreadJobDispatcher
+    # Try to signal the dispatcher if the job is running in-process
+    # (API-triggered jobs use their own dispatcher instance, so this mainly
+    # serves as a DB-level cancel for PENDING jobs)
+    job.status = "CANCELLED"
+    job.completed_at = datetime.now(timezone.utc).isoformat()
+    for jt in job.job_teams:
+        if jt.status in (None, "PENDING", "QUEUED"):
+            jt.status = "CANCELLED"
+    db.commit()
+    return {"status": "cancelled", "job_id": job_id}
+
+
 @router.get("/jobs/{job_id}/teams/{team_id}/logs/{stage}")
 def get_job_team_log(job_id: str, team_id: str, stage: str, db: Session = Depends(get_db)):
     jt = db.query(JobTeam).filter_by(job_id=job_id, team_id=team_id).first()

@@ -15,6 +15,13 @@
         <div><strong>Completed:</strong> {{ job.completed_at[:19] if job.completed_at else "—" }}</div>
         <div><strong>Dataset:</strong> <span class="mono">{{ dataset_name or job.dataset_id }}</span></div>
     </div>
+    {% if job.status in ("PENDING", "RUNNING") %}
+    <form method="post" action="/admin/dashboard/jobs/{{ job.id }}/cancel" style="margin-top:1rem;">
+        <button type="submit" class="outline secondary" onclick="return confirm('Cancel this job? The current stage will finish, but no new stages or teams will start.')">
+            Cancel Job
+        </button>
+    </form>
+    {% endif %}
 </article>
 
 <h3>Teams</h3>

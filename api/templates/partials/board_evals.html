@@ -2,6 +2,7 @@
     <thead>
         <tr>
             <th>Run ID</th>
+            <th>Dataset</th>
             <th>Status</th>
             <th>Stages</th>
             <th>F1</th>
@@ -16,6 +17,7 @@
         {% for e in evals %}
         <tr>
             <td class="mono">{{ e.run_id }}</td>
+            <td class="mono">{{ e.dataset_name }}</td>
             <td><span class="status-badge status-{{ e.status }}">{{ e.status }}</span></td>
             <td>
                 {% if e.stage_statuses %}

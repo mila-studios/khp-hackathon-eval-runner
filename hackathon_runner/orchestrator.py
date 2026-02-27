@@ -9,6 +9,8 @@ import time
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from typing import Callable
+
 from .config import RunConfig, TeamReportRow
 from .fs_utils import append_text, ensure_file, update_status, write_text
 from .logging_utils import log, log_context
@@ -16,6 +18,8 @@ from .proc import run_cmd
 from .reporter import NullStageReporter, StageReporter
 from .team import read_repo_requirements, validate_team_scripts
 from .util import short_path, ts
+
+CancelCheck = Callable[[], bool]
 
 
 def _validate_filename_arg(value: str, arg_name: str) -> None:
@@ -32,9 +36,15 @@ def _read_log_file(path: Path) -> str:
         return ""
 
 
-def run(config: RunConfig, reporter: StageReporter | None = None) -> int:
+def _no_cancel() -> bool:
+    return False
+
+
+def run(config: RunConfig, reporter: StageReporter | None = None, *, cancel_check: CancelCheck | None = None) -> int:
     if reporter is None:
         reporter = NullStageReporter()
+    if cancel_check is None:
+        cancel_check = _no_cancel
 
     _validate_filename_arg(config.pred_filename, "pred-filename")
     _validate_filename_arg(config.metrics_filename, "metrics-filename")
@@ -94,6 +104,12 @@ def run(config: RunConfig, reporter: StageReporter | None = None) -> int:
         log("No teams to run.")
         return 1
 
+    def _make_cancelled_row(team_id: str, stage: str, elapsed: float) -> TeamReportRow:
+        reporter.on_team_complete(team_id, TeamReportRow(
+            team_id, "CANCELLED", stage, "", "", "", "Job cancelled by admin", elapsed,
+        ))
+        return TeamReportRow(team_id, "CANCELLED", stage, "", "", "", "Job cancelled by admin", elapsed)
+
     def _run_team(team_arg):  # noqa: C901 — long but linear per-team pipeline
         team = team_arg
         t_start = time.monotonic()
@@ -151,6 +167,10 @@ def run(config: RunConfig, reporter: StageReporter | None = None) -> int:
                 team_work.mkdir(parents=True, exist_ok=True)
 
                 repo_config_paths = ["hackathon.json"]
+
+                # ── cancel check ──
+                if cancel_check():
+                    return _make_cancelled_row(team.team_id, "clone", time.monotonic() - t_start)
 
                 # ── clone ──
                 if not run_cmd(
@@ -258,6 +278,9 @@ def run(config: RunConfig, reporter: StageReporter | None = None) -> int:
                 pred_path.parent.mkdir(parents=True, exist_ok=True)
                 metrics_path.parent.mkdir(parents=True, exist_ok=True)
 
+                if cancel_check():
+                    return _make_cancelled_row(team.team_id, "configure", time.monotonic() - t_start)
+
                 # ── configure ──
                 if not run_cmd(
                     stage="configure",
@@ -279,6 +302,9 @@ def run(config: RunConfig, reporter: StageReporter | None = None) -> int:
                 cfg_log = team_out / "logs" / "configure.log"
                 reporter.on_stage_complete(team.team_id, "configure", True, _read_log_file(cfg_log))
 
+                if cancel_check():
+                    return _make_cancelled_row(team.team_id, "predict", time.monotonic() - t_start)
+
                 # ── predict ──
                 if not run_cmd(
                     stage="predict",
@@ -299,6 +325,9 @@ def run(config: RunConfig, reporter: StageReporter | None = None) -> int:
 
                 p_log = team_out / "logs" / "predict.log"
                 reporter.on_stage_complete(team.team_id, "predict", True, _read_log_file(p_log))
+
+                if cancel_check():
+                    return _make_cancelled_row(team.team_id, "validate_predictions", time.monotonic() - t_start)
 
                 # ── validate_predictions ──
                 if not pred_path.exists() or pred_path.stat().st_size == 0:
@@ -322,6 +351,9 @@ def run(config: RunConfig, reporter: StageReporter | None = None) -> int:
 
                 update_status(team_out, last_stage="validate_predictions", last_stage_status="DONE")
                 reporter.on_stage_complete(team.team_id, "validate_predictions", True, "")
+
+                if cancel_check():
+                    return _make_cancelled_row(team.team_id, "evaluate", time.monotonic() - t_start)
 
                 # ── evaluate ──
                 if not run_cmd(
@@ -372,8 +404,17 @@ def run(config: RunConfig, reporter: StageReporter | None = None) -> int:
                         where = short_path(team_result_log) if team_result_log else short_path(team_out / "logs")
                         log(f"TEAM RESULT FAILED stage={team_result_stage} see={where}", level="ERROR")
 
+    cancelled = False
     results: Dict[str, TeamReportRow] = {}
     for t in teams:
+        if cancel_check():
+            cancelled = True
+            with log_context(team=t.team_id, stage="-"):
+                log("SKIPPED — job cancelled", level="WARN")
+            row = _make_cancelled_row(t.team_id, "", 0.0)
+            results[t.team_id] = row
+            continue
+
         try:
             row = _run_team(t)
         except Exception as e:
@@ -383,6 +424,11 @@ def run(config: RunConfig, reporter: StageReporter | None = None) -> int:
             reporter.on_team_complete(t.team_id, row)
 
         results[t.team_id] = row
+
+        if row.final_status == "CANCELLED":
+            cancelled = True
+            continue
+
         if row.final_status.startswith("OK"):
             ok += 1
         else:
@@ -434,5 +480,8 @@ def run(config: RunConfig, reporter: StageReporter | None = None) -> int:
     write_text(out_dir / "summary.txt", f"ended_at={ts()}\ntotal={total}\nok={ok}\nfailed={fail}\n")
     with log_context(team="-", stage="-"):
         log("=" * 60)
+        if cancelled:
+            log(f"RUN CANCELLED total={total} ok={ok} failed={fail}", level="WARN")
+            return 3
         log(f"RUN COMPLETE total={total} ok={ok} failed={fail}", level=("SUCCESS" if fail == 0 else "ERROR"))
     return 2 if fail > 0 else 0

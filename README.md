@@ -251,13 +251,16 @@ Requires the `ADMIN_API_KEY` to log in. Provides a web UI to:
 - Upload and manage datasets
 - Trigger evaluation jobs (with multi-team selection)
 - Monitor job progress in real time (auto-refreshing stage chips)
+- Cancel running or pending jobs (current stage finishes, no new stages/teams start)
 - View per-stage logs inline
+- Browse runs: consolidated view across all jobs sharing a run ID (latest result per team)
 - Control public leaderboard settings (mode + official run)
 
 **Public Board** — `http://localhost:8000/public/dashboard/`
 
 No authentication required. Teams can:
-- Enter their team ID to view their evaluation history and latest score
+- Enter their team ID to view their evaluation history, dataset used, and latest score
+- View per-stage logs (including evaluate) for each evaluation
 - Trigger a self-service eval against the public dataset (with rate limiting: one concurrent eval per team, 15-min cooldown)
 - View the leaderboard (when enabled by the admin)
 
@@ -265,6 +268,8 @@ The leaderboard has three modes, toggled from the admin dashboard:
 - **off** — "Coming Soon" placeholder
 - **own_only** — teams can only see their own score
 - **full** — ranked leaderboard with all teams from the official run
+
+When set to **full**, the leaderboard consolidates results across all jobs sharing the official run ID (latest result per team). Rankings are ordered by F1 score (descending), with latency (ms/sample, ascending) as a tiebreaker. Teams with in-progress or failed evaluations are listed below the ranked section.
 
 ### API overview
 
@@ -281,6 +286,7 @@ The leaderboard has three modes, toggled from the admin dashboard:
 | `POST` | `/admin/jobs` | Trigger an eval job |
 | `GET` | `/admin/jobs` | List jobs (filterable by `status`, `run_id`) |
 | `GET` | `/admin/jobs/{job_id}` | Job detail + per-team status |
+| `POST` | `/admin/jobs/{job_id}/cancel` | Cancel a pending or running job |
 | `GET` | `/admin/runs` | List campaigns |
 | `GET` | `/admin/runs/{run_id}` | Latest result per team (consolidated across re-runs) |
 | `GET` | `/admin/runs/{run_id}/report` | Download consolidated `report.csv` |

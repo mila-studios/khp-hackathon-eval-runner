@@ -60,6 +60,7 @@
 <table>
     <thead>
         <tr>
+            <th>Job ID</th>
             <th>Run ID</th>
             <th>Status</th>
             <th>Triggered By</th>
@@ -70,6 +71,7 @@
     <tbody>
         {% for j in recent_jobs %}
         <tr>
+            <td class="mono" style="font-size:0.8rem;">{{ j.id|string|truncate(8, True, '…') }}</td>
             <td class="mono"><a href="/admin/dashboard/runs/{{ j.run_id }}">{{ j.run_id }}</a></td>
             <td><span class="status-badge status-{{ j.status }}">{{ j.status }}</span></td>
             <td>{{ j.triggered_by }}</td>
