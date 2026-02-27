@@ -1,0 +1,17 @@
+<article style="margin-top:1rem;">
+    <header>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong>{{ team_id }} / {{ stage }}</strong>
+            <span>
+                <span class="status-badge status-{{ 'OK' if success else 'FAILED' }}">{{ 'OK' if success else 'FAILED' }}</span>
+                <a href="#" onclick="document.getElementById('log-viewer').innerHTML=''; return false;"
+                   style="margin-left:0.5rem; font-size:0.85rem;">Close</a>
+            </span>
+        </div>
+    </header>
+    {% if log_content %}
+    <pre style="max-height:400px; overflow:auto; font-size:0.8rem; background:var(--pico-code-background-color); padding:1rem; border-radius:var(--pico-border-radius); white-space:pre-wrap; word-break:break-all;">{{ log_content }}</pre>
+    {% else %}
+    <p style="opacity:0.6;">No log content recorded for this stage.</p>
+    {% endif %}
+</article>

@@ -1,0 +1,41 @@
+<table>
+    <thead>
+        <tr>
+            <th>Run ID</th>
+            <th>Status</th>
+            <th>Stages</th>
+            <th>F1</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>Triggered</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for e in evals %}
+        <tr>
+            <td class="mono">{{ e.run_id }}</td>
+            <td><span class="status-badge status-{{ e.status }}">{{ e.status }}</span></td>
+            <td>
+                {% if e.stage_statuses %}
+                <div class="stage-list">
+                    {% for stage, st in e.stage_statuses.items() %}
+                    {% if st in ("OK", "FAILED") %}
+                    <span class="stage-chip status-{{ st }}" style="cursor:pointer; text-decoration:underline;"
+                          hx-get="/public/dashboard/team/{{ e.team_id }}/logs/{{ e.job_id }}/{{ stage }}"
+                          hx-target="#log-viewer"
+                          hx-swap="innerHTML">{{ stage }}</span>
+                    {% else %}
+                    <span class="stage-chip status-{{ st }}">{{ stage }}</span>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% else %}—{% endif %}
+            </td>
+            <td>{{ "%.3f"|format(e.f1) if e.f1 is not none else "—" }}</td>
+            <td>{{ "%.3f"|format(e.precision) if e.precision is not none else "—" }}</td>
+            <td>{{ "%.3f"|format(e.recall) if e.recall is not none else "—" }}</td>
+            <td>{{ e.created_at[:16] }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

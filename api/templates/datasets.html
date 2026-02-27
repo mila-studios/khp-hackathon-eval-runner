@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Datasets{% endblock %}
+{% block content %}
+<h1>Datasets</h1>
+
+<details>
+    <summary role="button" class="outline">Upload Dataset</summary>
+    <form method="post" action="/admin/dashboard/datasets/upload" enctype="multipart/form-data">
+        <label for="name">Dataset name</label>
+        <input type="text" id="name" name="name" placeholder="e.g. full_eval_v2" required>
+        <label for="description">Description (optional)</label>
+        <input type="text" id="description" name="description" placeholder="Description">
+        <label for="file">CSV file</label>
+        <input type="file" id="file" name="file" accept=".csv" required>
+        <fieldset>
+            <label>
+                <input type="checkbox" id="is_public_test" name="is_public_test" value="true">
+                Public test dataset (used by participant self-eval)
+            </label>
+        </fieldset>
+        <button type="submit">Upload</button>
+    </form>
+</details>
+
+{% if datasets %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Rows</th>
+            <th>Public Test</th>
+            <th>Created</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for d in datasets %}
+        <tr>
+            <td class="mono">{{ d.name }}</td>
+            <td>{{ d.description or "—" }}</td>
+            <td>{{ d.row_count if d.row_count is not none else "—" }}</td>
+            <td>{% if d.is_public_test %}Yes{% else %}—{% endif %}</td>
+            <td>{{ d.created_at[:19] }}</td>
+            <td>
+                <form method="post" action="/admin/dashboard/datasets/{{ d.id }}/delete" style="margin:0;">
+                    <button type="submit" class="outline secondary" style="padding:0.25rem 0.5rem; font-size:0.8rem;"
+                            onclick="return confirm('Delete dataset {{ d.name }}?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No datasets uploaded yet.</p>
+{% endif %}
+{% endblock %}

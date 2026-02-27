@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Board{% endblock %} - Hackathon Eval</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <style>
+        :root {
+            --pico-font-size: 15px;
+        }
+        nav ul li strong { font-size: 1.1rem; }
+        .flash {
+            padding: 0.75rem 1rem;
+            border-radius: var(--pico-border-radius);
+            margin-bottom: 1rem;
+        }
+        .flash-success { background: var(--pico-ins-color); color: #fff; }
+        .flash-error { background: var(--pico-del-color); color: #fff; }
+        .flash-info { background: #3498db; color: #fff; }
+        .status-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status-OK, .status-COMPLETED { background: #2ecc71; color: #fff; }
+        .status-RUNNING { background: #3498db; color: #fff; }
+        .status-PENDING { background: #95a5a6; color: #fff; }
+        .status-FAILED { background: #e74c3c; color: #fff; }
+        .mono { font-family: monospace; font-size: 0.85rem; }
+        .hero {
+            text-align: center;
+            padding: 2rem 0;
+        }
+        .hero h1 { margin-bottom: 0.5rem; }
+        .hero p { opacity: 0.7; font-size: 1.1rem; }
+        .stage-list {
+            display: flex;
+            gap: 0.3rem;
+            flex-wrap: wrap;
+        }
+        .stage-chip {
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .rank-1 { font-size: 1.3rem; }
+        .rank-2 { font-size: 1.15rem; }
+        .rank-3 { font-size: 1.05rem; }
+        .medal { font-size: 1.2em; margin-right: 0.3rem; }
+        table { font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <nav class="container-fluid">
+        <ul>
+            <li><strong><a href="/public/dashboard" class="contrast">Hackathon Eval Board</a></strong></li>
+        </ul>
+        <ul>
+            <li><a href="/public/dashboard">Home</a></li>
+            <li><a href="/public/dashboard/leaderboard">Leaderboard</a></li>
+        </ul>
+    </nav>
+    <main class="container">
+        {% if flash_msg %}
+        <div class="flash flash-{{ flash_type|default('success') }}">{{ flash_msg }}</div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="container" style="text-align:center; opacity:0.5; padding:2rem 0; font-size:0.85rem;">
+        Hackathon Eval Runner
+    </footer>
+</body>
+</html>

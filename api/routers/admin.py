@@ -172,6 +172,9 @@ def delete_dataset(dataset_id: str, db: Session = Depends(get_db)):
     ds = db.query(Dataset).filter_by(id=dataset_id).first()
     if not ds:
         raise HTTPException(404, "Dataset not found")
+    referencing = db.query(Job).filter_by(dataset_id=ds.id).count()
+    if referencing:
+        raise HTTPException(409, f"Cannot delete: dataset is referenced by {referencing} job(s)")
     db.delete(ds)
     db.commit()
 

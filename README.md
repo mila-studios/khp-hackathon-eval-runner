@@ -242,6 +242,30 @@ uvicorn api.main:app --host 0.0.0.0 --port 8000
 
 The API docs are available at `http://localhost:8000/docs` (Swagger UI).
 
+### Web Dashboards
+
+**Admin Dashboard** — `http://localhost:8000/admin/dashboard/`
+
+Requires the `ADMIN_API_KEY` to log in. Provides a web UI to:
+- Import and manage teams (CSV upload)
+- Upload and manage datasets
+- Trigger evaluation jobs (with multi-team selection)
+- Monitor job progress in real time (auto-refreshing stage chips)
+- View per-stage logs inline
+- Control public leaderboard settings (mode + official run)
+
+**Public Board** — `http://localhost:8000/public/dashboard/`
+
+No authentication required. Teams can:
+- Enter their team ID to view their evaluation history and latest score
+- Trigger a self-service eval against the public dataset (with rate limiting: one concurrent eval per team, 15-min cooldown)
+- View the leaderboard (when enabled by the admin)
+
+The leaderboard has three modes, toggled from the admin dashboard:
+- **off** — "Coming Soon" placeholder
+- **own_only** — teams can only see their own score
+- **full** — ranked leaderboard with all teams from the official run
+
 ### API overview
 
 **Admin API** (`X-Api-Key` header required):
@@ -253,6 +277,7 @@ The API docs are available at `http://localhost:8000/docs` (Swagger UI).
 | `POST` | `/admin/teams/import` | Bulk import from `teams.csv` |
 | `POST` | `/admin/datasets` | Upload an input dataset |
 | `GET` | `/admin/datasets` | List datasets |
+| `DELETE` | `/admin/datasets/{id}` | Delete a dataset (blocked if referenced by jobs) |
 | `POST` | `/admin/jobs` | Trigger an eval job |
 | `GET` | `/admin/jobs` | List jobs (filterable by `status`, `run_id`) |
 | `GET` | `/admin/jobs/{job_id}` | Job detail + per-team status |

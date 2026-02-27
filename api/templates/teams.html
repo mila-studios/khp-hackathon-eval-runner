@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Teams{% endblock %}
+{% block content %}
+<h1>Teams</h1>
+
+<details>
+    <summary role="button" class="outline">Import Teams CSV</summary>
+    <form method="post" action="/admin/dashboard/teams/import" enctype="multipart/form-data">
+        <label for="file">CSV file (team_id, git_url columns)</label>
+        <input type="file" id="file" name="file" accept=".csv" required>
+        <button type="submit">Import</button>
+    </form>
+</details>
+
+{% if teams %}
+<table>
+    <thead>
+        <tr>
+            <th>Team ID</th>
+            <th>Git URL</th>
+            <th>Created</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for t in teams %}
+        <tr>
+            <td class="mono">{{ t.team_id }}</td>
+            <td class="mono" style="max-width:400px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ t.git_url }}</td>
+            <td>{{ t.created_at[:19] }}</td>
+            <td>
+                <form method="post" action="/admin/dashboard/teams/{{ t.team_id }}/delete" style="margin:0;">
+                    <button type="submit" class="outline secondary" style="padding:0.25rem 0.5rem; font-size:0.8rem;"
+                            onclick="return confirm('Delete team {{ t.team_id }}?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No teams registered. Import a CSV to get started.</p>
+{% endif %}
+{% endblock %}

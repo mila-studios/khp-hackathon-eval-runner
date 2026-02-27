@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Jobs{% endblock %}
+{% block content %}
+<h1>Jobs</h1>
+
+<details>
+    <summary role="button" class="outline">Trigger New Job</summary>
+    <form method="post" action="/admin/dashboard/jobs/trigger">
+        <label for="dataset_id">Dataset</label>
+        <select id="dataset_id" name="dataset_id" required>
+            <option value="">Select a dataset</option>
+            {% for d in datasets %}
+            <option value="{{ d.id }}">{{ d.name }} ({{ d.row_count }} rows)</option>
+            {% endfor %}
+        </select>
+        <label for="team_ids">Teams (hold Ctrl/Cmd to select multiple, or leave empty for all)</label>
+        <select id="team_ids" name="team_ids" multiple size="{{ [teams|length + 1, 8] | min }}">
+            {% for t in teams %}
+            <option value="{{ t.team_id }}">{{ t.team_id }}</option>
+            {% endfor %}
+        </select>
+        <small>No selection = all teams</small>
+        <label for="run_id">Run ID (optional)</label>
+        <input type="text" id="run_id" name="run_id" placeholder="auto-generated if blank">
+        <fieldset>
+            <label>
+                <input type="checkbox" id="fail_fast" name="fail_fast" value="true">
+                Fail fast (stop on first team failure)
+            </label>
+        </fieldset>
+        <button type="submit" onclick="return confirmTrigger()">Trigger Job</button>
+        <script>
+        function confirmTrigger() {
+            var sel = document.getElementById('team_ids');
+            var selected = Array.from(sel.selectedOptions).map(o => o.value);
+            var desc = selected.length === 0 ? 'ALL teams' : selected.join(', ');
+            return confirm('Trigger eval for ' + desc + '?');
+        }
+        </script>
+    </form>
+</details>
+
+<form method="get" action="/admin/dashboard/jobs" style="display:flex; gap:1rem; align-items:end; margin-bottom:1rem;">
+    <div>
+        <label for="status_filter">Status</label>
+        <select id="status_filter" name="status">
+            <option value="">All</option>
+            {% for s in ["PENDING", "RUNNING", "COMPLETED", "FAILED"] %}
+            <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="outline" style="height:fit-content;">Filter</button>
+</form>
+
+{% if jobs %}
+<table>
+    <thead>
+        <tr>
+            <th>Run ID</th>
+            <th>Status</th>
+            <th>Triggered By</th>
+            <th>Created</th>
+            <th>Completed</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for j in jobs %}
+        <tr>
+            <td class="mono">{{ j.run_id }}</td>
+            <td><span class="status-badge status-{{ j.status }}">{{ j.status }}</span></td>
+            <td>{{ j.triggered_by }}</td>
+            <td>{{ j.created_at[:19] }}</td>
+            <td>{{ j.completed_at[:19] if j.completed_at else "—" }}</td>
+            <td><a href="/admin/dashboard/jobs/{{ j.id }}">View</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No jobs found.</p>
+{% endif %}
+{% endblock %}

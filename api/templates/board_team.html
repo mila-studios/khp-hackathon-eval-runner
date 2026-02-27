@@ -1,0 +1,68 @@
+{% extends "board_base.html" %}
+{% block title %}{{ team_id }}{% endblock %}
+{% block content %}
+<h1>{{ team_id }}</h1>
+
+{% if can_trigger %}
+<article>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <strong>Run a public eval</strong>
+            <p style="margin: 0; opacity: 0.7; font-size: 0.9rem;">
+                Evaluate your submission against the public dataset.
+            </p>
+        </div>
+        <form method="post" action="/public/dashboard/team/{{ team_id }}/trigger" style="margin:0;">
+            <button type="submit"
+                {% if blocked_reason %}disabled title="{{ blocked_reason }}"{% endif %}>
+                {% if blocked_reason %}{{ blocked_reason }}{% else %}Trigger Eval{% endif %}
+            </button>
+        </form>
+    </div>
+</article>
+{% elif no_public_dataset %}
+<article>
+    <p style="opacity:0.7;">No public dataset is configured yet. Check back later.</p>
+</article>
+{% endif %}
+
+{% if latest_metrics %}
+<h3>Latest Score</h3>
+<article>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem 2rem; text-align: center;">
+        <div>
+            <div style="font-size: 1.8rem; font-weight: 700;">{{ "%.3f"|format(latest_metrics.f1) }}</div>
+            <div style="opacity: 0.6;">F1 Score</div>
+        </div>
+        <div>
+            <div style="font-size: 1.4rem; font-weight: 600;">{{ "%.3f"|format(latest_metrics.precision) }}</div>
+            <div style="opacity: 0.6;">Precision</div>
+        </div>
+        <div>
+            <div style="font-size: 1.4rem; font-weight: 600;">{{ "%.3f"|format(latest_metrics.recall) }}</div>
+            <div style="opacity: 0.6;">Recall</div>
+        </div>
+        <div>
+            <div style="font-size: 1.4rem; font-weight: 600;">{{ latest_metrics.total_samples }}</div>
+            <div style="opacity: 0.6;">Samples</div>
+        </div>
+    </div>
+</article>
+{% endif %}
+
+<h3>Evaluation History</h3>
+<p style="font-size:0.85rem; opacity:0.7;">Click a completed stage chip to view its log.</p>
+{% if evals %}
+<div id="evals-table"
+     {% if has_running %}
+     hx-get="/public/dashboard/team/{{ team_id }}/evals-partial"
+     hx-trigger="every 4s"
+     hx-swap="innerHTML"
+     {% endif %}>
+    {% include "partials/board_evals.html" %}
+</div>
+<div id="log-viewer"></div>
+{% else %}
+<p style="opacity: 0.7;">No evaluations yet. Trigger one above to get started.</p>
+{% endif %}
+{% endblock %}

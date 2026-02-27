@@ -1,0 +1,17 @@
+{% extends "board_base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="hero">
+    <h1>Hackathon Eval Board</h1>
+    <p>Enter your team ID to view your evaluation results or trigger a new eval.</p>
+</div>
+
+<article style="max-width: 500px; margin: 0 auto;">
+    <form method="get" action="/public/dashboard/team">
+        <label for="team_id">Team ID</label>
+        <input type="text" id="team_id" name="team_id" placeholder="e.g. team_001" required
+               autofocus autocomplete="off">
+        <button type="submit">Go to my results</button>
+    </form>
+</article>
+{% endblock %}

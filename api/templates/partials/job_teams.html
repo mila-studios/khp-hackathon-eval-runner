@@ -1,0 +1,42 @@
+<table>
+    <thead>
+        <tr>
+            <th>Team</th>
+            <th>Status</th>
+            <th>Stages</th>
+            <th>Failed Stage</th>
+            <th>Elapsed</th>
+            <th>Error</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for jt in job_teams %}
+        <tr>
+            <td class="mono">{{ jt.team_id }}</td>
+            <td><span class="status-badge status-{{ jt.status }}">{{ jt.status }}</span></td>
+            <td>
+                {% if jt.stage_statuses %}
+                <div class="stage-list">
+                    {% for stage, st in jt.stage_statuses.items() %}
+                    {% if st in ("OK", "FAILED") %}
+                    <span class="stage-chip status-{{ st }}" style="cursor:pointer; text-decoration:underline;"
+                          hx-get="/admin/dashboard/jobs/{{ job_id }}/teams/{{ jt.team_id }}/logs/{{ stage }}"
+                          hx-target="#log-viewer"
+                          hx-swap="innerHTML">{{ stage }}</span>
+                    {% else %}
+                    <span class="stage-chip status-{{ st }}">{{ stage }}</span>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                {{ jt.current_stage or "—" }}
+                {% endif %}
+            </td>
+            <td>{{ jt.failed_stage or "—" }}</td>
+            <td>{{ "%.1f s"|format(jt.elapsed_s) if jt.elapsed_s else "—" }}</td>
+            <td style="max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                title="{{ jt.error or '' }}">{{ jt.error or "—" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

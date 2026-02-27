@@ -150,3 +150,10 @@ class TeamRunArtifact(Base):
     )
 
     job_team = relationship("JobTeam", back_populates="artifacts")
+
+
+class AppSettings(Base):
+    __tablename__ = "app_settings"
+
+    key = Column(String, primary_key=True)
+    value = Column(Text, nullable=False, default="")

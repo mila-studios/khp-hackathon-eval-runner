@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Dashboard{% endblock %} - Hackathon Eval Runner</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <style>
+        :root {
+            --pico-font-size: 15px;
+        }
+        nav ul li strong { font-size: 1.1rem; }
+        .flash {
+            padding: 0.75rem 1rem;
+            border-radius: var(--pico-border-radius);
+            margin-bottom: 1rem;
+        }
+        .flash-success { background: var(--pico-ins-color); color: #fff; }
+        .flash-error { background: var(--pico-del-color); color: #fff; }
+        .status-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status-OK, .status-COMPLETED { background: #2ecc71; color: #fff; }
+        .status-RUNNING { background: #3498db; color: #fff; }
+        .status-PENDING { background: #95a5a6; color: #fff; }
+        .status-FAILED { background: #e74c3c; color: #fff; }
+        .status-CANCELLED { background: #f39c12; color: #fff; }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .summary-card {
+            text-align: center;
+            padding: 1.2rem;
+        }
+        .summary-card h2 { margin-bottom: 0.25rem; }
+        .summary-card p { margin: 0; opacity: 0.7; }
+        table { font-size: 0.9rem; }
+        .actions { display: flex; gap: 0.5rem; }
+        .mono { font-family: monospace; font-size: 0.85rem; }
+        details[open] summary { margin-bottom: 0.5rem; }
+        .stage-list {
+            display: flex;
+            gap: 0.3rem;
+            flex-wrap: wrap;
+        }
+        .stage-chip {
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <nav class="container-fluid">
+        <ul>
+            <li><strong><a href="/admin/dashboard/" class="contrast">Eval Runner</a></strong></li>
+        </ul>
+        <ul>
+            <li><a href="/admin/dashboard/">Home</a></li>
+            <li><a href="/admin/dashboard/teams">Teams</a></li>
+            <li><a href="/admin/dashboard/datasets">Datasets</a></li>
+            <li><a href="/admin/dashboard/jobs">Jobs</a></li>
+            <li><a href="/admin/dashboard/logout">Logout</a></li>
+        </ul>
+    </nav>
+    <main class="container">
+        {% if flash_msg %}
+        <div class="flash flash-{{ flash_type|default('success') }}">{{ flash_msg }}</div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

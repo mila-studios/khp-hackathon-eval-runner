@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<div class="summary-cards">
+    <article class="summary-card">
+        <h2>{{ team_count }}</h2>
+        <p>Teams</p>
+    </article>
+    <article class="summary-card">
+        <h2>{{ dataset_count }}</h2>
+        <p>Datasets</p>
+    </article>
+    <article class="summary-card">
+        <h2>{{ job_count }}</h2>
+        <p>Total Jobs</p>
+    </article>
+    <article class="summary-card">
+        <h2>{{ running_count }}</h2>
+        <p>Running</p>
+    </article>
+</div>
+
+<div class="actions" style="margin-bottom: 1.5rem;">
+    <a href="/admin/dashboard/teams" role="button" class="outline">Manage Teams</a>
+    <a href="/admin/dashboard/datasets" role="button" class="outline">Manage Datasets</a>
+    <a href="/admin/dashboard/jobs" role="button" class="outline">Manage Jobs</a>
+</div>
+
+<h3>Public Board Settings</h3>
+<article>
+    <form method="post" action="/admin/dashboard/settings/leaderboard" style="display:grid; grid-template-columns:1fr 1fr auto; gap:1rem; align-items:end;">
+        <div>
+            <label for="leaderboard_mode">Leaderboard Mode</label>
+            <select id="leaderboard_mode" name="leaderboard_mode">
+                {% for val, label in [("off", "Off — hidden"), ("own_only", "Own Only — teams see their score"), ("full", "Full — public ranked leaderboard")] %}
+                <option value="{{ val }}" {% if leaderboard_mode == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="official_run_id">Official Run ID (for leaderboard)</label>
+            <select id="official_run_id" name="official_run_id">
+                <option value="">— none —</option>
+                {% for r in completed_runs %}
+                <option value="{{ r }}" {% if official_run_id == r %}selected{% endif %}>{{ r }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" style="height:fit-content;">Save</button>
+    </form>
+    <small style="opacity:0.6;">
+        Public board: <a href="/public/dashboard" target="_blank">/public/dashboard</a> &nbsp;|&nbsp;
+        Leaderboard: <a href="/public/dashboard/leaderboard" target="_blank">/public/dashboard/leaderboard</a>
+    </small>
+</article>
+
+{% if recent_jobs %}
+<h3>Recent Jobs</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Run ID</th>
+            <th>Status</th>
+            <th>Triggered By</th>
+            <th>Created</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for j in recent_jobs %}
+        <tr>
+            <td class="mono">{{ j.run_id }}</td>
+            <td><span class="status-badge status-{{ j.status }}">{{ j.status }}</span></td>
+            <td>{{ j.triggered_by }}</td>
+            <td>{{ j.created_at[:19] }}</td>
+            <td><a href="/admin/dashboard/jobs/{{ j.id }}">View</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}

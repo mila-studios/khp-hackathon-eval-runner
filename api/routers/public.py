@@ -33,7 +33,7 @@ def trigger_public_eval(body: PublicEvalRequest, db: Session = Depends(get_db)):
     if not dataset:
         raise HTTPException(500, "No public test dataset configured")
 
-    run_id = f"public_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{body.team_id}"
+    run_id = f"public_{body.team_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
     job = Job(
         run_id=run_id,
