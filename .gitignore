@@ -22,6 +22,7 @@ work/
 outputs/
 summary.txt
 run_manifest.txt
+.tmp/
 
 # Local config copies
 teams.csv

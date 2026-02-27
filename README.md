@@ -1,5 +1,9 @@
 ## Hackathon evaluation runner
 
+## Requirements
+
+- Python **3.12+** (runner)
+
 This repo contains a Python master runner (`master_eval.py`) that loops over team submissions and executes:
 
 - `git clone` (per team)
@@ -15,6 +19,7 @@ It writes per-team logs/artifacts under `outputs/<run_id>/` and produces a run-l
 
 - `master_eval.py`: main runner (clone → validate_repo → configure → predict → validate_predictions → evaluate)
 - `scripts/evaluate.sh`: default evaluator (calls `python -m src.guardrails.get_guardrail_metrics`)
+- `scripts/discover_needs_gpu.py`: helper to fetch only `hackathon.json` from git and extract `needs_gpu` (for K8S-style discovery)
 - `datasets/sample_guardrail_data.csv`: sample input CSV you can use for local testing
 - `teams.example.csv`: example team list format
 - `.env.example`: runner config template (copy to `.env`)
@@ -45,6 +50,8 @@ The runner passes these environment variables to team scripts (`configure.sh`, `
 - `HACKATHON_MODE`: `cpu` | `gpu`
 
 It also forwards environment variables from your shell, and (if present) loads `.env` from the runner repo root and forwards those values too (without overriding already-exported variables). This is how secrets like `OPENAI_API_KEY` are made available to team code.
+
+Note: `needs_gpu` is currently used only to set `HACKATHON_NEEDS_GPU` / `HACKATHON_MODE` (and to log the selected mode). The runner does not enforce GPU usage on its own — this is intended to be used by an external scheduler (e.g. a future K8S “discovery → schedule” flow).
 
 ## Quickstart (runner)
 
@@ -134,6 +141,18 @@ python3 master_eval.py \
   --input-csv datasets/sample_guardrail_data.csv \
   --eval-script scripts/evaluate.sh
 ```
+
+## Preflight discovery (K8S: decide GPU vs CPU)
+
+If you want to decide which node pool to schedule a team on *before* running the full evaluation, you can fetch only `hackathon.json` from git (no full clone) and extract `needs_gpu`:
+
+```bash
+python3 scripts/discover_needs_gpu.py --teams-csv teams.csv
+```
+
+This prints JSONL like:
+
+- `{"team_id":"team_001","git_url":"...","needs_gpu":false,"error":""}`
 
 ## Outputs
 
