@@ -27,4 +27,5 @@ run_manifest.txt
 # Local config copies
 teams.csv
 .env
+.hackathon_env
 

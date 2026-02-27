@@ -199,12 +199,71 @@ See [API_SERVICE_PROPOSAL.md](docs/API_SERVICE_PROPOSAL.md) for the full design 
 See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for Phase 1/2/3 architecture diagrams.
 See [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the Phase 2 implementation checklist.
 
-### Prerequisites
+### Option A: Docker Compose (recommended)
 
+Runs Postgres + API in containers. No local Python install needed.
+
+```bash
+# Start everything (builds image, starts Postgres + API)
+docker compose up --build
+
+# Or run in background
+docker compose up --build -d
+
+# View logs
+docker compose logs -f api
+
+# Stop
+docker compose down
+
+# Stop and wipe the database
+docker compose down -v
+```
+
+Set environment variables before starting. You can use the `.hackathon_env` template:
+
+```bash
+cp .hackathon_env.example .hackathon_env   # edit with your values
+source .hackathon_env
+docker compose up --build
+```
+
+Or pass them inline:
+
+```bash
+ADMIN_API_KEY=your-secret-key GIT_TOKEN=github_pat_xxx docker compose up --build
+```
+
+DB migrations run automatically on startup. The API is available at `http://localhost:8000`.
+
+### Environment variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | Postgres connection string (set automatically by Docker Compose) |
+| `ADMIN_API_KEY` | Yes | Protects admin API + dashboard login |
+| `GIT_TOKEN` | For private repos | GitHub PAT — injected into HTTPS clone URLs at runtime |
+| `CLONE_TIMEOUT` | No (default: 600) | Git clone timeout in seconds |
+| `CONFIGURE_TIMEOUT` | No (default: 600) | Configure stage timeout in seconds |
+| `PREDICT_TIMEOUT` | No (default: 7200) | Predict stage timeout in seconds |
+| `EVAL_TIMEOUT` | No (default: 600) | Evaluate stage timeout in seconds |
+| `PUBLIC_EVAL_COOLDOWN` | No (default: 900) | Cooldown between public self-service evals per team (seconds) |
+| `EVAL_SCRIPT` | No | Path to evaluator script (default: `scripts/evaluate.sh`) |
+| `CONFIGURE_SCRIPT` | No | Relative path to team configure script (default: `project/scripts/configure.sh`) |
+| `PREDICT_SCRIPT` | No | Relative path to team predict script (default: `project/scripts/predict.sh`) |
+| `*_API_KEY` | No | Any env var ending in `_API_KEY` (e.g. `OPENAI_API_KEY`) is forwarded to team scripts |
+
+**Note:** `DATABASE_URL`, `ADMIN_API_KEY`, and `GIT_TOKEN` should be set via shell exports or `.hackathon_env`, **not** in `.env` — the `.env` file is loaded by the runner and `*_API_KEY` variables are forwarded to team scripts.
+
+### Option B: Local Python + Docker Postgres
+
+If you prefer running Python locally (e.g., for development):
+
+**Prerequisites:**
 - Docker (for Postgres)
 - Python 3.12+ with all dependencies installed (`pip install -r requirements.txt`)
 
-### 1. Start Postgres
+**1. Start Postgres**
 
 ```bash
 docker run -d \
@@ -216,26 +275,20 @@ docker run -d \
   postgres:16
 ```
 
-### 2. Set environment variables
+**2. Set environment variables**
 
 ```bash
 export DATABASE_URL="postgresql://hackathon:hackathon@localhost:5432/hackathon_eval"
 export ADMIN_API_KEY="your-secret-key"
 ```
 
-### 3. Run database migrations
-
-```bash
-alembic upgrade head
-```
-
-### 4. Start the API server
+**3. Start the API server**
 
 ```bash
 uvicorn api.main:app --host 0.0.0.0 --port 8000
 ```
 
-The API docs are available at `http://localhost:8000/docs` (Swagger UI).
+DB migrations run automatically on startup. The API docs are available at `http://localhost:8000/docs` (Swagger UI).
 
 ### Web Dashboards
 

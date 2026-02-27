@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: hackathon
+      POSTGRES_PASSWORD: hackathon
+      POSTGRES_DB: hackathon_eval
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hackathon -d hackathon_eval"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://hackathon:hackathon@db:5432/hackathon_eval
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-changeme}
+      GIT_TOKEN: ${GIT_TOKEN:-}
+      # Optional: forward LLM keys to team scripts
+      # OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./work:/app/work
+      - ./outputs:/app/outputs
+
+volumes:
+  pgdata:

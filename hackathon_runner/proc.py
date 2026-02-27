@@ -80,9 +80,15 @@ def run_cmd(
     if extra_env:
         env.update(extra_env)
 
+    import re
+    _TOKEN_RE = re.compile(r"(https?://)([^@]+)@")
+
+    def _redact(s: str) -> str:
+        return _TOKEN_RE.sub(r"\1****@", s)
+
     disp_cmd = [short_arg(x) for x in cmd]
-    cmd_str = " ".join(shlex.quote(x) for x in cmd)
-    cmd_disp_str = " ".join(shlex.quote(x) for x in disp_cmd)
+    cmd_str = _redact(" ".join(shlex.quote(x) for x in cmd))
+    cmd_disp_str = _redact(" ".join(shlex.quote(x) for x in disp_cmd))
     with log_context(stage=stage):
         log(f"Starting (timeout={timeout_s}s)", level="STAGE")
         wrapped = textwrap.wrap(cmd_disp_str, width=120) or [cmd_disp_str]

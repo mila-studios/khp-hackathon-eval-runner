@@ -1,0 +1,7 @@
+# Sensitive environment variables — source this file, do not commit.
+#   cp .hackathon_env.example .hackathon_env
+#   source .hackathon_env
+
+export DATABASE_URL="postgresql://hackathon:hackathon@localhost:5432/hackathon_eval"
+export ADMIN_API_KEY="changeme"
+export GIT_TOKEN=""

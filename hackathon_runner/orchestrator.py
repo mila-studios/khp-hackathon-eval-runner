@@ -173,10 +173,15 @@ def run(config: RunConfig, reporter: StageReporter | None = None, *, cancel_chec
                     return _make_cancelled_row(team.team_id, "clone", time.monotonic() - t_start)
 
                 # ── clone ──
+                clone_url = team.git_url
+                git_token = os.environ.get("GIT_TOKEN", "")
+                if git_token and clone_url.startswith("https://"):
+                    clone_url = clone_url.replace("https://", f"https://{git_token}@", 1)
+
                 if not run_cmd(
                     stage="clone",
                     team_out=team_out,
-                    cmd=["git", "clone", "--depth", "1", team.git_url, str(repo_dir)],
+                    cmd=["git", "clone", "--depth", "1", clone_url, str(repo_dir)],
                     cwd=None,
                     timeout_s=config.clone_timeout,
                     extra_env=None,
