@@ -61,5 +61,41 @@
 {% else %}
 <p style="opacity: 0.7;">No results available yet for the official run.</p>
 {% endif %}
+
+{% if running_teams %}
+<h3>In Progress</h3>
+<table>
+    <thead>
+        <tr><th>Team</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+        {% for t in running_teams %}
+        <tr>
+            <td class="mono">{{ t.team_id }}</td>
+            <td><span class="status-badge status-{{ t.status }}">{{ t.status }}</span></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% if failed_teams %}
+<h3>Failed</h3>
+<table>
+    <thead>
+        <tr><th>Team</th><th>Status</th><th>Failed Stage</th></tr>
+    </thead>
+    <tbody>
+        {% for t in failed_teams %}
+        <tr>
+            <td class="mono">{{ t.team_id }}</td>
+            <td><span class="status-badge status-FAILED">FAILED</span></td>
+            <td>{{ t.failed_stage or "—" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
 {% endif %}
 {% endblock %}

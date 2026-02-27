@@ -92,6 +92,8 @@ def _build_team_evals(team_id: str, db: Session):
             "f1": metrics.f1 if metrics else None,
             "precision": metrics.precision if metrics else None,
             "recall": metrics.recall if metrics else None,
+            "latency_ms_mean": metrics.latency_ms_mean if metrics else None,
+            "latency_ms_total": metrics.latency_ms_total if metrics else None,
             "created_at": jt.job.created_at,
         })
     return evals
@@ -307,13 +309,16 @@ def leaderboard(request: Request, db: Session = Depends(get_db)):
     official_run_id = _get_setting(db, "official_run_id", "")
 
     entries = []
+    running_teams = []
+    failed_teams = []
     dataset_name = None
     if mode == "full" and official_run_id:
         job = db.query(Job).filter_by(run_id=official_run_id).order_by(Job.created_at.desc()).first()
         if job:
             ds = db.query(Dataset).filter_by(id=job.dataset_id).first()
             dataset_name = ds.name if ds else None
-            rows = (
+
+            ok_rows = (
                 db.query(JobTeam, TeamRunMetric)
                 .join(TeamRunMetric, TeamRunMetric.job_team_id == JobTeam.id)
                 .filter(JobTeam.job_id == job.id, JobTeam.status == "OK")
@@ -329,13 +334,25 @@ def leaderboard(request: Request, db: Session = Depends(get_db)):
                         "latency_ms_mean": m.latency_ms_mean,
                         "latency_ms_total": m.latency_ms_total,
                     }
-                    for jt, m in rows
+                    for jt, m in ok_rows
                 ],
-                key=lambda x: x["f1"],
-                reverse=True,
+                key=lambda x: (-x["f1"], x["latency_ms_mean"] or float("inf")),
             )
+
+            other_teams = (
+                db.query(JobTeam)
+                .filter(JobTeam.job_id == job.id, JobTeam.status != "OK")
+                .order_by(JobTeam.team_id)
+                .all()
+            )
+            for jt in other_teams:
+                entry = {"team_id": jt.team_id, "status": jt.status, "failed_stage": jt.failed_stage}
+                if jt.status == "FAILED":
+                    failed_teams.append(entry)
+                else:
+                    running_teams.append(entry)
 
     return templates.TemplateResponse("board_leaderboard.html", _board_ctx(
         request, mode=mode, official_run_id=official_run_id, entries=entries,
-        dataset_name=dataset_name,
+        dataset_name=dataset_name, running_teams=running_teams, failed_teams=failed_teams,
     ))

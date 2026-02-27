@@ -43,8 +43,12 @@
             <div style="opacity: 0.6;">Recall</div>
         </div>
         <div>
-            <div style="font-size: 1.4rem; font-weight: 600;">{{ latest_metrics.total_samples }}</div>
-            <div style="opacity: 0.6;">Samples</div>
+            <div style="font-size: 1.4rem; font-weight: 600;">{{ "%.0f"|format(latest_metrics.latency_ms_mean) if latest_metrics.latency_ms_mean else "—" }}</div>
+            <div style="opacity: 0.6;">Latency (ms/sample)</div>
+        </div>
+        <div>
+            <div style="font-size: 1.4rem; font-weight: 600;">{{ "%.1f"|format(latest_metrics.latency_ms_total / 1000) if latest_metrics.latency_ms_total else "—" }}</div>
+            <div style="opacity: 0.6;">Total Latency (s)</div>
         </div>
     </div>
 </article>

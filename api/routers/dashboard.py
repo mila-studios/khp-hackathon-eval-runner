@@ -109,8 +109,8 @@ def dashboard_home(request: Request, db: Session = Depends(get_db), eval_session
 
     leaderboard_mode = _get_setting(db, "leaderboard_mode", "off")
     official_run_id = _get_setting(db, "official_run_id", "")
-    completed_runs = [
-        r for (r,) in db.query(Job.run_id).filter(Job.status == "COMPLETED")
+    all_runs = [
+        r for (r,) in db.query(Job.run_id)
         .distinct().order_by(Job.run_id.desc()).all()
     ]
 
@@ -123,7 +123,7 @@ def dashboard_home(request: Request, db: Session = Depends(get_db), eval_session
         recent_jobs=recent_jobs,
         leaderboard_mode=leaderboard_mode,
         official_run_id=official_run_id,
-        completed_runs=completed_runs,
+        completed_runs=all_runs,
     ))
 
 
@@ -363,7 +363,7 @@ async def jobs_trigger(
 
 def _build_job_teams_ctx(job, db: Session):
     result = []
-    for jt in job.job_teams:
+    for jt in sorted(job.job_teams, key=lambda x: x.team_id):
         logs = db.query(TeamRunLog).filter_by(job_team_id=jt.id).all()
         completed_stages = {lg.stage: lg for lg in logs}
         stage_statuses = {}
