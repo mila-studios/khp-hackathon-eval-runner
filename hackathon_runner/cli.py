@@ -43,6 +43,8 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         help="Stop scheduling new teams after the first failure.",
     )
 
+    p.add_argument("--configure-script", default=os.environ.get("CONFIGURE_SCRIPT", "project/scripts/configure.sh"))
+    p.add_argument("--predict-script", default=os.environ.get("PREDICT_SCRIPT", "project/scripts/predict.sh"))
     p.add_argument("--eval-script", type=Path, default=Path(os.environ.get("EVAL_SCRIPT", "scripts/evaluate.sh")))
 
     p.add_argument("--pred-filename", default="predictions/predictions.csv")

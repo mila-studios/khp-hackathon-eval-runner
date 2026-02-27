@@ -81,8 +81,8 @@ def run(args: argparse.Namespace) -> int:
     _validate_filename_arg(args.pred_filename, "pred-filename")
     _validate_filename_arg(args.metrics_filename, "metrics-filename")
 
-    configure_path = "project/scripts/configure.sh"
-    predict_path = "project/scripts/predict.sh"
+    configure_path = args.configure_script
+    predict_path = args.predict_script
 
     root_dir = Path.cwd()
     set_display_root(root_dir)

@@ -29,8 +29,8 @@ It writes per-team logs/artifacts under `outputs/<run_id>/` and produces a run-l
 Each team repo must contain:
 
 - `hackathon.json` (required): declares resource needs
-- `project/scripts/configure.sh` (required)
-- `project/scripts/predict.sh` (required)
+- `project/scripts/configure.sh` (required, path overridable via `--configure-script`)
+- `project/scripts/predict.sh` (required, path overridable via `--predict-script`)
 
 ### `hackathon.json` schema
 
@@ -49,7 +49,7 @@ The runner passes these environment variables to team scripts (`configure.sh`, `
 - `HACKATHON_NEEDS_GPU`: `0` or `1`
 - `HACKATHON_MODE`: `cpu` | `gpu`
 
-It also forwards environment variables from your shell, and (if present) loads `.env` from the runner repo root and forwards those values too (without overriding already-exported variables). This is how secrets like `OPENAI_API_KEY` are made available to team code.
+If a `.env` file is present in the runner repo root, the runner loads it and forwards any variables whose names end in `_API_KEY` (e.g. `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`) to team scripts, without overriding variables already exported in your shell. No other variables from `.env` or the runner's environment are forwarded to team scripts.
 
 Note: `needs_gpu` is currently used only to set `HACKATHON_NEEDS_GPU` / `HACKATHON_MODE` (and to log the selected mode). The runner does not enforce GPU usage on its own — this is intended to be used by an external scheduler (e.g. a future K8S “discovery → schedule” flow).
 
@@ -106,8 +106,8 @@ FORCE_COLOR=1 python3 master_eval.py --help
   - The runner clones each team repo under `work/<run_id>/<team_id>/repo/`
 
 - **Stage scripts**
-  - `project/scripts/configure.sh` (required)
-  - `project/scripts/predict.sh` (required)
+  - `--configure-script` (env `CONFIGURE_SCRIPT`, default `project/scripts/configure.sh`)
+  - `--predict-script` (env `PREDICT_SCRIPT`, default `project/scripts/predict.sh`)
   - Note: for `configure`/`predict`, the runner will prepend common repo-local venv locations (like `repo/.venv/bin`) to `PATH` if they exist, so a team script calling `python` typically uses the venv created during `configure`.
 
 - **Timeouts (seconds)**
