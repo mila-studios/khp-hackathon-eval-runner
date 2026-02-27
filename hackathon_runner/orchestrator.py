@@ -71,7 +71,16 @@ def _load_dotenv_file(path: Path) -> Dict[str, str]:
     return out
 
 
+def _validate_filename_arg(value: str, arg_name: str) -> None:
+    p = Path(value)
+    if p.is_absolute() or any(part == ".." for part in p.parts):
+        raise ValueError(f"--{arg_name} {value!r} must be a relative path with no '..' components")
+
+
 def run(args: argparse.Namespace) -> int:
+    _validate_filename_arg(args.pred_filename, "pred-filename")
+    _validate_filename_arg(args.metrics_filename, "metrics-filename")
+
     configure_path = "project/scripts/configure.sh"
     predict_path = "project/scripts/predict.sh"
 
@@ -89,7 +98,7 @@ def run(args: argparse.Namespace) -> int:
     def git_head_sha(repo: Path) -> Optional[str]:
         try:
             out = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=str(repo), stderr=subprocess.STDOUT)
-        except Exception:
+        except (subprocess.CalledProcessError, OSError):
             return None
         sha = out.decode("utf-8", errors="replace").strip()
         return sha or None
@@ -158,9 +167,16 @@ def run(args: argparse.Namespace) -> int:
         for sub in ("logs", "predictions", "metrics"):
             p = team_out / sub
             if p.exists():
-                shutil.rmtree(p)
-        if (team_out / "status.txt").exists():
-            (team_out / "status.txt").unlink()
+                try:
+                    shutil.rmtree(p)
+                except OSError as e:
+                    log(f"WARN: could not remove {p}: {e}", level="WARN")
+        status_file = team_out / "status.txt"
+        if status_file.exists():
+            try:
+                status_file.unlink()
+            except OSError as e:
+                log(f"WARN: could not remove {status_file}: {e}", level="WARN")
 
         with log_context(team=team.team_id):
             with log_context(stage="-"):
@@ -191,7 +207,10 @@ def run(args: argparse.Namespace) -> int:
             try:
                 # Prepare workdir (always start from a clean checkout).
                 if team_work.exists():
-                    shutil.rmtree(team_work)
+                    try:
+                        shutil.rmtree(team_work)
+                    except OSError as e:
+                        raise RuntimeError(f"Could not clean work directory {team_work}: {e}") from e
                 team_work.mkdir(parents=True, exist_ok=True)
 
                 repo_config_paths = ["hackathon.json"]
