@@ -20,7 +20,10 @@ from typing import Any, Dict, Iterable, Iterator, Optional
 
 
 def _run(cmd: list[str], *, cwd: Optional[Path] = None) -> None:
-    subprocess.check_call(cmd, cwd=str(cwd) if cwd else None)
+    result = subprocess.run(cmd, cwd=str(cwd) if cwd else None, capture_output=True)
+    if result.returncode != 0:
+        stderr = result.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(f"Command {cmd!r} failed (exit {result.returncode}): {stderr}")
 
 
 def _read_teams_csv(path: Path) -> list[dict[str, str]]:
