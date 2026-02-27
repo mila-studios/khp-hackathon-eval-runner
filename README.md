@@ -194,3 +194,87 @@ Default artifact filenames (overridable):
 
 If a team fails, inspect `outputs/<run_id>/<team_id>/logs/<stage>.log`, fix the issue, then rerun the same command (optionally narrowing scope with `--only-teams`).
 
+---
+
+## API Service (Phase 2)
+
+The same evaluation pipeline is also available via an HTTP API backed by Postgres. The CLI continues to work as before — both modes share the same runner code.
+
+See [API_SERVICE_PROPOSAL.md](API_SERVICE_PROPOSAL.md) for the full design and DB schema.
+
+### Prerequisites
+
+- Docker (for Postgres)
+- Python 3.12+ with all dependencies installed (`pip install -r requirements.txt`)
+
+### 1. Start Postgres
+
+```bash
+docker run -d \
+  --name hackathon-pg \
+  -e POSTGRES_USER=hackathon \
+  -e POSTGRES_PASSWORD=hackathon \
+  -e POSTGRES_DB=hackathon_eval \
+  -p 5432:5432 \
+  postgres:16
+```
+
+### 2. Set environment variables
+
+```bash
+export DATABASE_URL="postgresql://hackathon:hackathon@localhost:5432/hackathon_eval"
+export ADMIN_API_KEY="your-secret-key"
+```
+
+### 3. Run database migrations
+
+```bash
+alembic upgrade head
+```
+
+### 4. Start the API server
+
+```bash
+uvicorn api.main:app --host 0.0.0.0 --port 8000
+```
+
+The API docs are available at `http://localhost:8000/docs` (Swagger UI).
+
+### API overview
+
+**Admin API** (`X-Api-Key` header required):
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/admin/teams` | Create a team |
+| `GET` | `/admin/teams` | List teams |
+| `POST` | `/admin/teams/import` | Bulk import from `teams.csv` |
+| `POST` | `/admin/datasets` | Upload an input dataset |
+| `GET` | `/admin/datasets` | List datasets |
+| `POST` | `/admin/jobs` | Trigger an eval job |
+| `GET` | `/admin/jobs` | List jobs (filterable by `status`, `run_id`) |
+| `GET` | `/admin/jobs/{job_id}` | Job detail + per-team status |
+| `GET` | `/admin/runs` | List campaigns |
+| `GET` | `/admin/runs/{run_id}` | Latest result per team (consolidated across re-runs) |
+| `GET` | `/admin/runs/{run_id}/report` | Download consolidated `report.csv` |
+
+**Public API** (no auth):
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/public/eval` | Trigger eval for a team (uses public test dataset) |
+| `GET` | `/public/jobs/{job_id}` | Job status with stage-by-stage progress |
+
+### Stopping / resetting
+
+```bash
+# Stop the API server: Ctrl+C
+
+# Stop and remove Postgres (data is lost):
+docker rm -f hackathon-pg
+
+# Or stop without removing (data persists):
+docker stop hackathon-pg
+# Restart later: docker start hackathon-pg
+```
+

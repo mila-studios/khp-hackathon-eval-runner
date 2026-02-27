@@ -268,19 +268,19 @@ Required env vars: `DATABASE_URL`, `ADMIN_API_KEY`
 
 ## Task Checklist
 
-- [ ] Create `hackathon_runner/config.py` with `RunConfig` dataclass
-- [ ] Create `hackathon_runner/reporter.py` with `StageReporter` protocol + `NullStageReporter`
-- [ ] Modify `orchestrator.py`: new signature `run(config, reporter)`, add reporter callbacks after each stage
-- [ ] Modify `app.py`: move setup logic from orchestrator, build `RunConfig` from parsed args
-- [ ] Verify CLI still works identically after refactor
-- [ ] Create `db/models.py` with SQLAlchemy models for all 7 tables
-- [ ] Create `db/session.py` with engine + session factory
-- [ ] Create Alembic migration (`001_initial`) with tables + campaign view
-- [ ] Implement `DbStageReporter` in `reporter.py`
-- [ ] Create `api/auth.py` with `ADMIN_API_KEY` check
-- [ ] Create `api/schemas.py` with Pydantic request/response models
-- [ ] Create `api/routers/admin.py` with all admin endpoints
-- [ ] Create `api/routers/public.py` with public eval + job status endpoints
-- [ ] Create `api/main.py` FastAPI app with routers + lifespan
-- [ ] Create `hackathon_runner/dispatcher.py` with `ThreadJobDispatcher`
-- [ ] Update `requirements.txt` and add API startup instructions
+- [x] Create `hackathon_runner/config.py` with `RunConfig` dataclass
+- [x] Create `hackathon_runner/reporter.py` with `StageReporter` protocol + `NullStageReporter`
+- [x] Modify `orchestrator.py`: new signature `run(config, reporter)`, add reporter callbacks after each stage
+- [x] Modify `app.py`: move setup logic from orchestrator, build `RunConfig` from parsed args
+- [x] Verify CLI still works identically after refactor
+- [x] Create `db/models.py` with SQLAlchemy models (6 tables — `needs_gpu` removed from teams)
+- [x] Create `db/session.py` with engine + session factory
+- [x] Create Alembic migrations (`001_initial`, `002_dataset_content_inline`, `003_drop_teams_needs_gpu`)
+- [x] Implement `DbStageReporter` in `reporter.py`
+- [x] Create `api/auth.py` with `ADMIN_API_KEY` check
+- [x] Create `api/schemas.py` with Pydantic request/response models
+- [x] Create `api/routers/admin.py` with all admin endpoints
+- [x] Create `api/routers/public.py` with public eval + job status endpoints
+- [x] Create `api/main.py` FastAPI app with routers + lifespan
+- [x] Create `hackathon_runner/dispatcher.py` with `ThreadJobDispatcher`
+- [x] Update `requirements.txt` and add API startup instructions

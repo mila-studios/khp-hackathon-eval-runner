@@ -246,7 +246,6 @@ No authentication required.
 |---|---|---|
 | `team_id` | `VARCHAR` PK | e.g. `"team_001"` |
 | `git_url` | `TEXT NOT NULL` | |
-| `needs_gpu` | `BOOLEAN` | Nullable; populated at first successful clone |
 | `created_at` | `TIMESTAMPTZ` | |
 | `updated_at` | `TIMESTAMPTZ` | |
 
@@ -257,7 +256,7 @@ No authentication required.
 | `id` | `UUID` PK | |
 | `name` | `VARCHAR UNIQUE` | e.g. `"full_eval_v1"`, `"public_test"` |
 | `description` | `TEXT` | |
-| `file_path` | `TEXT` | Server-side storage path |
+| `content` | `TEXT` | Raw CSV content stored inline |
 | `row_count` | `INTEGER` | |
 | `is_public_test` | `BOOLEAN DEFAULT FALSE` | Only one row should be `TRUE` |
 | `created_at` | `TIMESTAMPTZ` | |
