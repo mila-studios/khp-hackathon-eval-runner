@@ -200,7 +200,9 @@ If a team fails, inspect `outputs/<run_id>/<team_id>/logs/<stage>.log`, fix the 
 
 The same evaluation pipeline is also available via an HTTP API backed by Postgres. The CLI continues to work as before — both modes share the same runner code.
 
-See [API_SERVICE_PROPOSAL.md](API_SERVICE_PROPOSAL.md) for the full design and DB schema.
+See [API_SERVICE_PROPOSAL.md](docs/API_SERVICE_PROPOSAL.md) for the full design and DB schema.
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for Phase 1/2/3 architecture diagrams.
+See [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the Phase 2 implementation checklist.
 
 ### Prerequisites
 
