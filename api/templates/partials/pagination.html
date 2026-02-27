@@ -1,0 +1,15 @@
+{% if total_pages > 1 %}
+<nav style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem;">
+    <div>
+        {% if page > 1 %}
+        <a href="{{ base_url }}?page={{ page - 1 }}{{ extra_qs }}" role="button" class="outline secondary" style="padding:0.4rem 0.8rem; font-size:0.85rem;">&larr; Previous</a>
+        {% endif %}
+    </div>
+    <span style="opacity:0.7; font-size:0.9rem;">Page {{ page }} of {{ total_pages }} ({{ total_items }} total)</span>
+    <div>
+        {% if page < total_pages %}
+        <a href="{{ base_url }}?page={{ page + 1 }}{{ extra_qs }}" role="button" class="outline secondary" style="padding:0.4rem 0.8rem; font-size:0.85rem;">Next &rarr;</a>
+        {% endif %}
+    </div>
+</nav>
+{% endif %}

@@ -55,19 +55,19 @@ Note: `needs_gpu` is currently used only to set `HACKATHON_NEEDS_GPU` / `HACKATH
 
 ## Quickstart (runner)
 
-1) Create your `teams.csv`:
+1. Create your `teams.csv`:
 
 ```bash
 cp teams.example.csv teams.csv
 ```
 
-2) (Optional) Create a `.env` file for configuration/secrets:
+1. (Optional) Create a `.env` file for configuration/secrets:
 
 ```bash
 cp .env.example .env
 ```
 
-3) Create a virtual environment and install dependencies:
+1. Create a virtual environment and install dependencies:
 
 ```bash
 python3 -m venv .venv
@@ -76,7 +76,7 @@ python -m pip install -U pip
 python -m pip install -r requirements.txt
 ```
 
-4) Run:
+1. Run:
 
 ```bash
 python3 master_eval.py \
@@ -104,25 +104,20 @@ FORCE_COLOR=1 python3 master_eval.py --help
 
 - **Per-team repo layout**
   - The runner clones each team repo under `work/<run_id>/<team_id>/repo/`
-
 - **Stage scripts**
   - `--configure-script` (env `CONFIGURE_SCRIPT`, default `project/scripts/configure.sh`)
   - `--predict-script` (env `PREDICT_SCRIPT`, default `project/scripts/predict.sh`)
   - Note: for `configure`/`predict`, the runner will prepend common repo-local venv locations (like `repo/.venv/bin`) to `PATH` if they exist, so a team script calling `python` typically uses the venv created during `configure`.
-
 - **Timeouts (seconds)**
   - `--clone-timeout` (env `CLONE_TIMEOUT`, default 600)
   - `--configure-timeout` (env `CONFIGURE_TIMEOUT`, default 600)
   - `--predict-timeout` (env `PREDICT_TIMEOUT`, default 7200)
   - `--eval-timeout` (env `EVAL_TIMEOUT`, default 600)
-
 - **Failure handling**
   - The runner **continues after failures by default**.
   - To stop on first failure, pass `--fail-fast` (or set `CONTINUE_ON_FAILURE=0` in the environment).
-
 - **Clone/workdir controls**
   - The runner clones each team repo fresh for each run.
-
 - **Artifact filenames**
   - `--pred-filename predictions/predictions.csv`
   - `--metrics-filename metrics/metrics.csv`
@@ -247,6 +242,7 @@ The API docs are available at `http://localhost:8000/docs` (Swagger UI).
 **Admin Dashboard** — `http://localhost:8000/admin/dashboard/`
 
 Requires the `ADMIN_API_KEY` to log in. Provides a web UI to:
+
 - Import and manage teams (CSV upload)
 - Upload and manage datasets
 - Trigger evaluation jobs (with multi-team selection)
@@ -259,12 +255,14 @@ Requires the `ADMIN_API_KEY` to log in. Provides a web UI to:
 **Public Board** — `http://localhost:8000/public/dashboard/`
 
 No authentication required. Teams can:
+
 - Enter their team ID to view their evaluation history, dataset used, and latest score
 - View per-stage logs (including evaluate) for each evaluation
 - Trigger a self-service eval against the public dataset (with rate limiting: one concurrent eval per team, 15-min cooldown)
 - View the leaderboard (when enabled by the admin)
 
 The leaderboard has three modes, toggled from the admin dashboard:
+
 - **off** — "Coming Soon" placeholder
 - **own_only** — teams can only see their own score
 - **full** — ranked leaderboard with all teams from the official run
@@ -275,28 +273,32 @@ When set to **full**, the leaderboard consolidates results across all jobs shari
 
 **Admin API** (`X-Api-Key` header required):
 
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/admin/teams` | Create a team |
-| `GET` | `/admin/teams` | List teams |
-| `POST` | `/admin/teams/import` | Bulk import from `teams.csv` |
-| `POST` | `/admin/datasets` | Upload an input dataset |
-| `GET` | `/admin/datasets` | List datasets |
-| `DELETE` | `/admin/datasets/{id}` | Delete a dataset (blocked if referenced by jobs) |
-| `POST` | `/admin/jobs` | Trigger an eval job |
-| `GET` | `/admin/jobs` | List jobs (filterable by `status`, `run_id`) |
-| `GET` | `/admin/jobs/{job_id}` | Job detail + per-team status |
-| `POST` | `/admin/jobs/{job_id}/cancel` | Cancel a pending or running job |
-| `GET` | `/admin/runs` | List campaigns |
-| `GET` | `/admin/runs/{run_id}` | Latest result per team (consolidated across re-runs) |
-| `GET` | `/admin/runs/{run_id}/report` | Download consolidated `report.csv` |
+
+| Method   | Path                          | Description                                          |
+| -------- | ----------------------------- | ---------------------------------------------------- |
+| `POST`   | `/admin/teams`                | Create a team                                        |
+| `GET`    | `/admin/teams`                | List teams                                           |
+| `POST`   | `/admin/teams/import`         | Bulk import from `teams.csv`                         |
+| `POST`   | `/admin/datasets`             | Upload an input dataset                              |
+| `GET`    | `/admin/datasets`             | List datasets                                        |
+| `DELETE` | `/admin/datasets/{id}`        | Delete a dataset (blocked if referenced by jobs)     |
+| `POST`   | `/admin/jobs`                 | Trigger an eval job                                  |
+| `GET`    | `/admin/jobs`                 | List jobs (filterable by `status`, `run_id`)         |
+| `GET`    | `/admin/jobs/{job_id}`        | Job detail + per-team status                         |
+| `POST`   | `/admin/jobs/{job_id}/cancel` | Cancel a pending or running job                      |
+| `GET`    | `/admin/runs`                 | List campaigns                                       |
+| `GET`    | `/admin/runs/{run_id}`        | Latest result per team (consolidated across re-runs) |
+| `GET`    | `/admin/runs/{run_id}/report` | Download consolidated `report.csv`                   |
+
 
 **Public API** (no auth):
 
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/public/eval` | Trigger eval for a team (uses public test dataset) |
-| `GET` | `/public/jobs/{job_id}` | Job status with stage-by-stage progress |
+
+| Method | Path                    | Description                                        |
+| ------ | ----------------------- | -------------------------------------------------- |
+| `POST` | `/public/eval`          | Trigger eval for a team (uses public test dataset) |
+| `GET`  | `/public/jobs/{job_id}` | Job status with stage-by-stage progress            |
+
 
 ### Stopping / resetting
 

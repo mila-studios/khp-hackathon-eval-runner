@@ -259,25 +259,36 @@ def datasets_delete(dataset_id: str, db: Session = Depends(get_db), eval_session
 
 # ── Jobs ─────────────────────────────────────────────────────────
 
+PAGE_SIZE = 25
+
+
 @router.get("/jobs", response_class=HTMLResponse)
 def jobs_page(
     request: Request,
     status: Optional[str] = None,
+    page: int = 1,
     db: Session = Depends(get_db),
     eval_session: Optional[str] = Cookie(None),
 ):
     if not _check_session(eval_session):
         return RedirectResponse(url="/admin/dashboard/login", status_code=303)
 
+    page = max(1, page)
     q = db.query(Job)
     if status:
         q = q.filter(Job.status == status)
-    jobs = q.order_by(Job.created_at.desc()).all()
+    total = q.count()
+    total_pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
+    page = min(page, total_pages)
+    jobs = q.order_by(Job.created_at.desc()).offset((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).all()
     datasets = db.query(Dataset).order_by(Dataset.name).all()
     teams = db.query(Team).order_by(Team.team_id).all()
 
+    extra_qs = f"&status={status}" if status else ""
     return templates.TemplateResponse("jobs.html", _template_ctx(
         request, jobs=jobs, datasets=datasets, teams=teams, status_filter=status or "",
+        page=page, total_pages=total_pages, total_items=total,
+        base_url="/admin/dashboard/jobs", extra_qs=extra_qs,
     ))
 
 
@@ -450,7 +461,8 @@ def job_teams_partial(request: Request, job_id: str, db: Session = Depends(get_d
 # ── Runs ──────────────────────────────────────────────────────────
 
 @router.get("/runs", response_class=HTMLResponse)
-def runs_page(request: Request, db: Session = Depends(get_db), eval_session: Optional[str] = Cookie(None)):
+def runs_page(request: Request, page: int = 1, db: Session = Depends(get_db),
+              eval_session: Optional[str] = Cookie(None)):
     if not _check_session(eval_session):
         return RedirectResponse(url="/admin/dashboard/login", status_code=303)
 
@@ -474,7 +486,7 @@ def runs_page(request: Request, db: Session = Depends(get_db), eval_session: Opt
         .all()
     )
 
-    runs = []
+    all_runs = []
     for r in rows:
         n = r.job_count
         if r.n_running or r.n_pending:
@@ -487,7 +499,7 @@ def runs_page(request: Request, db: Session = Depends(get_db), eval_session: Opt
             status = "CANCELLED"
         else:
             status = "MIXED"
-        runs.append({
+        all_runs.append({
             "run_id": r.run_id,
             "job_count": r.job_count,
             "first_created": r.first_created,
@@ -496,7 +508,16 @@ def runs_page(request: Request, db: Session = Depends(get_db), eval_session: Opt
             "triggered_by": r.triggered_by,
         })
 
-    return templates.TemplateResponse("runs.html", _template_ctx(request, runs=runs))
+    total = len(all_runs)
+    total_pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
+    page = max(1, min(page, total_pages))
+    runs = all_runs[(page - 1) * PAGE_SIZE : page * PAGE_SIZE]
+
+    return templates.TemplateResponse("runs.html", _template_ctx(
+        request, runs=runs,
+        page=page, total_pages=total_pages, total_items=total,
+        base_url="/admin/dashboard/runs", extra_qs="",
+    ))
 
 
 @router.get("/runs/{run_id}", response_class=HTMLResponse)

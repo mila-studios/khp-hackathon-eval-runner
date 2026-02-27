@@ -1,0 +1,10 @@
+.git
+.venv
+__pycache__
+*.pyc
+work/
+outputs/
+.env
+.env.*
+*.egg-info
+.cursor/

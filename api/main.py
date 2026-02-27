@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import logging
+import subprocess
+import sys
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -7,9 +10,27 @@ from fastapi.responses import Response
 
 from db.session import init_db
 
+_log = logging.getLogger(__name__)
+
+
+def _run_migrations() -> None:
+    """Run alembic upgrade head at startup (idempotent)."""
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
+            capture_output=True, text=True, timeout=60,
+        )
+        if result.returncode == 0:
+            _log.info("DB migrations: up to date")
+        else:
+            _log.error("DB migration failed (exit %d): %s", result.returncode, result.stderr)
+    except Exception as exc:
+        _log.error("DB migration error: %s", exc)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    _run_migrations()
     init_db()
     yield
 
