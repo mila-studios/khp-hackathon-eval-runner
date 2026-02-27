@@ -2,9 +2,28 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+
+_TEAM_ID_RE = re.compile(r'^[A-Za-z0-9_-]+$')
+_ALLOWED_GIT_URL_PREFIXES = ("https://", "http://", "git://", "git@", "ssh://")
+
+
+def _validate_team_id(team_id: str) -> None:
+    if not _TEAM_ID_RE.match(team_id):
+        raise ValueError(
+            f"Invalid team_id {team_id!r}: must contain only letters, digits, hyphens, and underscores"
+        )
+
+
+def _validate_git_url(git_url: str, team_id: str) -> None:
+    if not any(git_url.startswith(p) for p in _ALLOWED_GIT_URL_PREFIXES):
+        raise ValueError(
+            f"Team {team_id!r}: git_url {git_url!r} is not a recognised remote URL "
+            f"(must start with one of: {', '.join(_ALLOWED_GIT_URL_PREFIXES)})"
+        )
 
 
 @dataclass(frozen=True)
@@ -25,6 +44,8 @@ def read_teams_csv(path: Path) -> List[Team]:
             git_url = (row.get("git_url") or "").strip()
             if not team_id or not git_url:
                 continue
+            _validate_team_id(team_id)
+            _validate_git_url(git_url, team_id)
             teams.append(Team(team_id=team_id, git_url=git_url))
     return teams
 
