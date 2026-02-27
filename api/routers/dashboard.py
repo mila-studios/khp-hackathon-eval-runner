@@ -17,6 +17,10 @@ from sqlalchemy.orm import Session
 from db.models import AppSettings, Dataset, Job, JobTeam, Team, TeamRunLog, TeamRunMetric
 from db.session import get_db, get_database_url
 from hackathon_runner.config import RunConfig
+
+def _collect_api_keys() -> dict[str, str]:
+    """Forward *_API_KEY env vars to team subprocesses (matches CLI behaviour)."""
+    return {k: v for k, v in os.environ.items() if k.endswith("_API_KEY") and k != "ADMIN_API_KEY"}
 from hackathon_runner.dispatcher import ThreadJobDispatcher
 from hackathon_runner.reporter import DbStageReporter
 from hackathon_runner.team import Team as RunnerTeam
@@ -361,7 +365,7 @@ async def jobs_trigger(
         pred_filename=os.environ.get("PRED_FILENAME", "predictions/predictions.csv"),
         metrics_filename=os.environ.get("METRICS_FILENAME", "metrics/metrics.csv"),
         continue_on_failure=not ff,
-        extra_env={},
+        extra_env=_collect_api_keys(),
     )
 
     reporter = DbStageReporter(job_id=str(job.id), db_url=db_url)

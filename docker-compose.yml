@@ -23,15 +23,16 @@ services:
       DATABASE_URL: postgresql://hackathon:hackathon@db:5432/hackathon_eval
       ADMIN_API_KEY: ${ADMIN_API_KEY:-changeme}
       GIT_TOKEN: ${GIT_TOKEN:-}
-      # Optional: forward LLM keys to team scripts
-      # OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Forward LLM keys to team scripts
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./work:/app/work
-      - ./outputs:/app/outputs
+    # Uncomment to inspect artifacts on the host:
+    # volumes:
+    #   - ./work:/app/work
+    #   - ./outputs:/app/outputs
 
 volumes:
   pgdata:
