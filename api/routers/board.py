@@ -313,44 +313,38 @@ def leaderboard(request: Request, db: Session = Depends(get_db)):
     failed_teams = []
     dataset_name = None
     if mode == "full" and official_run_id:
-        job = db.query(Job).filter_by(run_id=official_run_id).order_by(Job.created_at.desc()).first()
-        if job:
-            ds = db.query(Dataset).filter_by(id=job.dataset_id).first()
+        from sqlalchemy import text
+
+        # Get dataset name from the latest job in this run
+        latest_job = db.query(Job).filter_by(run_id=official_run_id).order_by(Job.created_at.desc()).first()
+        if latest_job:
+            ds = db.query(Dataset).filter_by(id=latest_job.dataset_id).first()
             dataset_name = ds.name if ds else None
 
-            ok_rows = (
-                db.query(JobTeam, TeamRunMetric)
-                .join(TeamRunMetric, TeamRunMetric.job_team_id == JobTeam.id)
-                .filter(JobTeam.job_id == job.id, JobTeam.status == "OK")
-                .all()
-            )
-            entries = sorted(
-                [
-                    {
-                        "team_id": jt.team_id,
+        # Use the consolidated view: latest result per team across all jobs in this run
+        view_rows = db.execute(
+            text("SELECT * FROM latest_team_results_by_run WHERE run_id = :rid"),
+            {"rid": official_run_id},
+        ).mappings().all()
+
+        for r in view_rows:
+            if r["status"] == "OK":
+                m = db.query(TeamRunMetric).filter_by(job_team_id=r["job_team_id"]).first()
+                if m:
+                    entries.append({
+                        "team_id": r["team_id"],
                         "f1": m.f1,
                         "precision": m.precision,
                         "recall": m.recall,
                         "latency_ms_mean": m.latency_ms_mean,
                         "latency_ms_total": m.latency_ms_total,
-                    }
-                    for jt, m in ok_rows
-                ],
-                key=lambda x: (-x["f1"], x["latency_ms_mean"] or float("inf")),
-            )
+                    })
+            elif r["status"] == "FAILED":
+                failed_teams.append({"team_id": r["team_id"], "status": r["status"], "failed_stage": r["failed_stage"]})
+            else:
+                running_teams.append({"team_id": r["team_id"], "status": r["status"], "failed_stage": None})
 
-            other_teams = (
-                db.query(JobTeam)
-                .filter(JobTeam.job_id == job.id, JobTeam.status != "OK")
-                .order_by(JobTeam.team_id)
-                .all()
-            )
-            for jt in other_teams:
-                entry = {"team_id": jt.team_id, "status": jt.status, "failed_stage": jt.failed_stage}
-                if jt.status == "FAILED":
-                    failed_teams.append(entry)
-                else:
-                    running_teams.append(entry)
+        entries.sort(key=lambda x: (-x["f1"], x["latency_ms_mean"] or float("inf")))
 
     return templates.TemplateResponse("board_leaderboard.html", _board_ctx(
         request, mode=mode, official_run_id=official_run_id, entries=entries,

@@ -14,7 +14,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from db.models import AppSettings, Dataset, Job, JobTeam, Team, TeamRunLog
+from db.models import AppSettings, Dataset, Job, JobTeam, Team, TeamRunLog, TeamRunMetric
 from db.session import get_db, get_database_url
 from hackathon_runner.config import RunConfig
 from hackathon_runner.dispatcher import ThreadJobDispatcher
@@ -418,6 +418,87 @@ def job_teams_partial(request: Request, job_id: str, db: Session = Depends(get_d
 
     job_teams = _build_job_teams_ctx(job, db)
     return templates.TemplateResponse("partials/job_teams.html", {"request": request, "job_teams": job_teams, "job_id": job_id})
+
+
+# ── Runs ──────────────────────────────────────────────────────────
+
+@router.get("/runs", response_class=HTMLResponse)
+def runs_page(request: Request, db: Session = Depends(get_db), eval_session: Optional[str] = Cookie(None)):
+    if not _check_session(eval_session):
+        return RedirectResponse(url="/admin/dashboard/login", status_code=303)
+
+    from sqlalchemy import func, case
+
+    rows = (
+        db.query(
+            Job.run_id,
+            func.count(Job.id).label("job_count"),
+            func.min(Job.created_at).label("first_created"),
+            func.max(Job.created_at).label("last_created"),
+            func.max(case((Job.status == "RUNNING", 1), else_=0)).label("any_running"),
+            func.max(case((Job.status == "FAILED", 1), else_=0)).label("any_failed"),
+            func.max(Job.triggered_by).label("triggered_by"),
+        )
+        .group_by(Job.run_id)
+        .order_by(func.max(Job.created_at).desc())
+        .all()
+    )
+
+    runs = [
+        {
+            "run_id": r.run_id,
+            "job_count": r.job_count,
+            "first_created": r.first_created,
+            "last_created": r.last_created,
+            "any_running": r.any_running,
+            "any_failed": r.any_failed,
+            "triggered_by": r.triggered_by,
+        }
+        for r in rows
+    ]
+
+    return templates.TemplateResponse("runs.html", _template_ctx(request, runs=runs))
+
+
+@router.get("/runs/{run_id}", response_class=HTMLResponse)
+def run_detail(request: Request, run_id: str, db: Session = Depends(get_db),
+               eval_session: Optional[str] = Cookie(None)):
+    if not _check_session(eval_session):
+        return RedirectResponse(url="/admin/dashboard/login", status_code=303)
+
+    from sqlalchemy import text
+
+    jobs = db.query(Job).filter_by(run_id=run_id).order_by(Job.created_at.desc()).all()
+    if not jobs:
+        return _flash_redirect("/admin/dashboard/runs", f"No jobs found for run '{run_id}'", "error")
+
+    ds = db.query(Dataset).filter_by(id=jobs[0].dataset_id).first()
+    dataset_name = ds.name if ds else None
+
+    view_rows = db.execute(
+        text("SELECT * FROM latest_team_results_by_run WHERE run_id = :rid ORDER BY team_id"),
+        {"rid": run_id},
+    ).mappings().all()
+
+    team_results = []
+    for r in view_rows:
+        m = db.query(TeamRunMetric).filter_by(job_team_id=r["job_team_id"]).first()
+        team_results.append({
+            "team_id": r["team_id"],
+            "status": r["status"],
+            "failed_stage": r["failed_stage"],
+            "elapsed_s": r["elapsed_s"],
+            "job_id": str(r["job_id"]),
+            "f1": m.f1 if m else None,
+            "precision": m.precision if m else None,
+            "recall": m.recall if m else None,
+            "latency_ms_mean": m.latency_ms_mean if m else None,
+            "latency_ms_total": m.latency_ms_total if m else None,
+        })
+
+    return templates.TemplateResponse("run_detail.html", _template_ctx(
+        request, run_id=run_id, jobs=jobs, team_results=team_results, dataset_name=dataset_name,
+    ))
 
 
 @router.get("/jobs/{job_id}/teams/{team_id}/logs/{stage}", response_class=HTMLResponse)

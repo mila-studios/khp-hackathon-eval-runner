@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Runs{% endblock %}
+{% block content %}
+<h1>Runs</h1>
+<p style="opacity:0.7; font-size:0.9rem;">
+    A run groups one or more jobs that share the same Run ID.
+    Results are consolidated: if a team was evaluated in multiple jobs under the same run, only the latest result is shown.
+</p>
+
+{% if runs %}
+<table>
+    <thead>
+        <tr>
+            <th>Run ID</th>
+            <th>Jobs</th>
+            <th>Status</th>
+            <th>Triggered By</th>
+            <th>First Created</th>
+            <th>Last Updated</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in runs %}
+        <tr>
+            <td class="mono">{{ r.run_id }}</td>
+            <td>{{ r.job_count }}</td>
+            <td>
+                {% if r.any_running %}
+                <span class="status-badge status-RUNNING">RUNNING</span>
+                {% elif r.any_failed %}
+                <span class="status-badge status-FAILED">MIXED</span>
+                {% else %}
+                <span class="status-badge status-COMPLETED">COMPLETED</span>
+                {% endif %}
+            </td>
+            <td>{{ r.triggered_by }}</td>
+            <td>{{ r.first_created[:19] }}</td>
+            <td>{{ r.last_created[:19] }}</td>
+            <td><a href="/admin/dashboard/runs/{{ r.run_id }}">View</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No runs found.</p>
+{% endif %}
+{% endblock %}

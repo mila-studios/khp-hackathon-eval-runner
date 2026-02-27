@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Run {{ run_id }}{% endblock %}
+{% block content %}
+<h1>Run: <span class="mono">{{ run_id }}</span></h1>
+
+<article>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.5rem 2rem;">
+        <div><strong>Total Jobs:</strong> {{ jobs|length }}</div>
+        <div><strong>Teams (consolidated):</strong> {{ team_results|length }}</div>
+        <div><strong>Dataset:</strong> {{ dataset_name or "—" }}</div>
+    </div>
+</article>
+
+<h3>Jobs in this Run</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Job ID</th>
+            <th>Status</th>
+            <th>Teams</th>
+            <th>Triggered By</th>
+            <th>Created</th>
+            <th>Completed</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for j in jobs %}
+        <tr>
+            <td class="mono" style="font-size:0.8rem;">{{ j.id }}</td>
+            <td><span class="status-badge status-{{ j.status }}">{{ j.status }}</span></td>
+            <td>{{ j.job_teams|length }}</td>
+            <td>{{ j.triggered_by }}</td>
+            <td>{{ j.created_at[:19] }}</td>
+            <td>{{ j.completed_at[:19] if j.completed_at else "—" }}</td>
+            <td><a href="/admin/dashboard/jobs/{{ j.id }}">View</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h3>Consolidated Team Results</h3>
+<p style="opacity:0.7; font-size:0.85rem;">
+    For each team, the latest result across all jobs in this run is shown.
+</p>
+
+{% if team_results %}
+<table>
+    <thead>
+        <tr>
+            <th>Team</th>
+            <th>Status</th>
+            <th>F1</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>Latency (ms/sample)</th>
+            <th>Total Latency (s)</th>
+            <th>Failed Stage</th>
+            <th>Elapsed</th>
+            <th>From Job</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for t in team_results %}
+        <tr>
+            <td class="mono">{{ t.team_id }}</td>
+            <td><span class="status-badge status-{{ t.status }}">{{ t.status }}</span></td>
+            <td>{% if t.f1 is not none %}<strong>{{ "%.4f"|format(t.f1) }}</strong>{% else %}—{% endif %}</td>
+            <td>{% if t.precision is not none %}{{ "%.4f"|format(t.precision) }}{% else %}—{% endif %}</td>
+            <td>{% if t.recall is not none %}{{ "%.4f"|format(t.recall) }}{% else %}—{% endif %}</td>
+            <td>{% if t.latency_ms_mean is not none %}{{ "%.0f"|format(t.latency_ms_mean) }}{% else %}—{% endif %}</td>
+            <td>{% if t.latency_ms_total is not none %}{{ "%.1f"|format(t.latency_ms_total / 1000) }}{% else %}—{% endif %}</td>
+            <td>{{ t.failed_stage or "—" }}</td>
+            <td>{{ "%.1f s"|format(t.elapsed_s) if t.elapsed_s else "—" }}</td>
+            <td class="mono" style="font-size:0.75rem;">
+                <a href="/admin/dashboard/jobs/{{ t.job_id }}">{{ t.job_id[:8] }}…</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No team results yet.</p>
+{% endif %}
+{% endblock %}

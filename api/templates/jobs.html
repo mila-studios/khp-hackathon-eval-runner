@@ -57,6 +57,7 @@
 <table>
     <thead>
         <tr>
+            <th>Job ID</th>
             <th>Run ID</th>
             <th>Status</th>
             <th>Triggered By</th>
@@ -68,7 +69,8 @@
     <tbody>
         {% for j in jobs %}
         <tr>
-            <td class="mono">{{ j.run_id }}</td>
+            <td class="mono" style="font-size:0.8rem;"><a href="/admin/dashboard/jobs/{{ j.id }}">{{ j.id|string|truncate(8, True, '…') }}</a></td>
+            <td class="mono"><a href="/admin/dashboard/runs/{{ j.run_id }}">{{ j.run_id }}</a></td>
             <td><span class="status-badge status-{{ j.status }}">{{ j.status }}</span></td>
             <td>{{ j.triggered_by }}</td>
             <td>{{ j.created_at[:19] }}</td>

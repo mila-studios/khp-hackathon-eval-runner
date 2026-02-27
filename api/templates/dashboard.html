@@ -70,7 +70,7 @@
     <tbody>
         {% for j in recent_jobs %}
         <tr>
-            <td class="mono">{{ j.run_id }}</td>
+            <td class="mono"><a href="/admin/dashboard/runs/{{ j.run_id }}">{{ j.run_id }}</a></td>
             <td><span class="status-badge status-{{ j.status }}">{{ j.status }}</span></td>
             <td>{{ j.triggered_by }}</td>
             <td>{{ j.created_at[:19] }}</td>
